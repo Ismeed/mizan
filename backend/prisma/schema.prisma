@@ -1,0 +1,289 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id                String    @id @default(uuid())
+  email             String?   @unique
+  phone             String?   @unique
+  password_hash     String?
+  google_id         String?   @unique
+  apple_id          String?   @unique
+  name              String
+  avatar_url        String?
+  role              String    @default("USER")  // "USER" | "ADMIN"
+  is_premium        Boolean   @default(false)
+  email_verified    Boolean   @default(false)
+  auth_provider     String    @default("EMAIL") // "EMAIL" | "GOOGLE"
+  onboarding_complete Boolean @default(false)
+  last_login        DateTime?
+  email_otp         String?
+  email_otp_expires DateTime?
+  reset_otp         String?
+  reset_otp_expires DateTime?
+  default_currency  String?   @default("USD")
+  profile_image_url String?
+  created_at        DateTime  @default(now())
+  updated_at        DateTime  @updatedAt
+
+  sessions         UserSession[]
+  otp_codes        OtpCode[]
+  calculations     Calculation[]
+  ai_conversations AiConversation[]
+  reports          Report[]
+  subscriptions    Subscription[]
+  notifications    Notification[]
+  audit_logs       AuditLog[]
+  app_settings     AppSettings?
+  device_tokens    DeviceToken[]
+
+  @@map("users")
+}
+
+model UserSession {
+  id            String   @id @default(uuid())
+  user_id       String
+  user          User     @relation(fields: [user_id], references: [id])
+  refresh_token String   @unique
+  device_info   String?
+  ip_address    String?
+  expires_at    DateTime
+  created_at    DateTime @default(now())
+
+  @@map("user_sessions")
+}
+
+model OtpCode {
+  id         String   @id @default(uuid())
+  user_id    String
+  user       User     @relation(fields: [user_id], references: [id])
+  code       String
+  type       String
+  expires_at DateTime
+  used       Boolean  @default(false)
+  created_at DateTime @default(now())
+
+  @@map("otp_codes")
+}
+
+model Calculation {
+  id         String   @id @default(uuid())
+  user_id    String
+  user       User     @relation(fields: [user_id], references: [id])
+  type       String   // "INHERITANCE" or "ZAKAT"
+  title      String?
+  created_at DateTime @default(now())
+
+  inheritance InheritanceCalculation?
+  zakat       ZakatCalculation?
+  reports     Report[]
+
+  @@map("calculations")
+}
+
+model InheritanceCalculation {
+  id               String      @id @default(uuid())
+  calculation_id   String      @unique
+  calculation      Calculation @relation(fields: [calculation_id], references: [id])
+  total_estate     Float
+  debts            Float
+  funeral_expenses Float
+  wasiyyah         Float
+  net_estate       Float
+  currency         String
+  madhhab          String
+  notes            String?
+
+  heirs            InheritanceHeir[]
+
+  @@map("inheritance_calculations")
+}
+
+model InheritanceHeir {
+  id                         String                 @id @default(uuid())
+  inheritance_calculation_id String
+  inheritance_calculation    InheritanceCalculation @relation(fields: [inheritance_calculation_id], references: [id])
+  heir_type                  String
+  count                      Int
+  share_fraction_num         Int
+  share_fraction_den         Int
+  share_amount               Float
+  is_blocked                 Boolean                @default(false)
+  blocking_reason            String?
+  quran_reference            String?
+
+  @@map("inheritance_heirs")
+}
+
+model ZakatCalculation {
+  id                String      @id @default(uuid())
+  calculation_id    String      @unique
+  calculation       Calculation @relation(fields: [calculation_id], references: [id])
+  total_wealth      Float
+  total_debts       Float
+  exempt_amount     Float
+  net_wealth        Float
+  nisab_threshold   Float
+  zakat_rate        Float
+  zakat_due         Float
+  zakat_type        String
+  currency          String
+  hawl_start_date   DateTime?
+
+  assets            ZakatAsset[]
+
+  @@map("zakat_calculations")
+}
+
+model ZakatAsset {
+  id                   String           @id @default(uuid())
+  zakat_calculation_id String
+  zakat_calculation    ZakatCalculation @relation(fields: [zakat_calculation_id], references: [id])
+  asset_type           String
+  description          String?
+  value                Float
+  quantity             Float?
+  unit                 String?
+
+  @@map("zakat_assets")
+}
+
+model AiConversation {
+  id         String   @id @default(uuid())
+  user_id    String
+  user       User     @relation(fields: [user_id], references: [id])
+  title      String
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+
+  messages   AiMessage[]
+
+  @@map("ai_conversations")
+}
+
+model AiMessage {
+  id              String         @id @default(uuid())
+  conversation_id String
+  conversation    AiConversation @relation(fields: [conversation_id], references: [id])
+  role            String         // "user", "assistant", "system"
+  content         String
+  sources         String?
+  tokens_used     Int?
+  created_at      DateTime       @default(now())
+
+  @@map("ai_messages")
+}
+
+model Report {
+  id             String      @id @default(uuid())
+  calculation_id String?
+  calculation    Calculation? @relation(fields: [calculation_id], references: [id])
+  user_id        String
+  user           User        @relation(fields: [user_id], references: [id])
+  file_url       String
+  file_size      Int
+  created_at     DateTime    @default(now())
+
+  @@map("reports")
+}
+
+model Subscription {
+  id                       String   @id @default(uuid())
+  user_id                  String
+  user                     User     @relation(fields: [user_id], references: [id])
+  plan                     String
+  status                   String
+  provider                 String
+  provider_subscription_id String?
+  current_period_start     DateTime?
+  current_period_end       DateTime?
+  created_at               DateTime @default(now())
+
+  @@map("subscriptions")
+}
+
+model Notification {
+  id         String   @id @default(uuid())
+  user_id    String
+  user       User     @relation(fields: [user_id], references: [id])
+  title      String
+  body       String
+  type       String
+  data       String?
+  is_read    Boolean  @default(false)
+  sent_at    DateTime?
+  created_at DateTime @default(now())
+
+  @@map("notifications")
+}
+
+model DeviceToken {
+  id          String   @id @default(uuid())
+  user_id     String
+  user        User     @relation(fields: [user_id], references: [id])
+  fcm_token   String   @unique
+  platform    String   // "ios" | "android"
+  created_at  DateTime @default(now())
+  updated_at  DateTime @updatedAt
+
+  @@map("device_tokens")
+}
+
+model AuditLog {
+  id          String   @id @default(uuid())
+  user_id     String?
+  user        User?    @relation(fields: [user_id], references: [id])
+  action      String
+  resource    String
+  resource_id String?
+  ip_address  String?
+  user_agent  String?
+  metadata    String?
+  created_at  DateTime @default(now())
+
+  @@map("audit_logs")
+}
+
+model AppSettings {
+  id                    String   @id @default(uuid())
+  user_id               String   @unique
+  user                  User     @relation(fields: [user_id], references: [id])
+  dark_mode             Boolean  @default(false)
+  language              String   @default("en")
+  country               String?
+  currency              String   @default("USD")
+  madhhab               String   @default("HANAFI")
+  zakat_reminders       Boolean  @default(true)
+  ramadan_reminders     Boolean  @default(true)
+  notification_enabled  Boolean  @default(true)
+  updated_at            DateTime @updatedAt
+
+  @@map("app_settings")
+}
+
+model NisabRate {
+  id                 String   @id @default(uuid())
+  type               String   @unique // "GOLD" or "SILVER"
+  value_in_grams     Float
+  price_per_gram_usd Float
+  updated_at         DateTime @updatedAt
+
+  @@map("nisab_rates")
+}
+
+model Faq {
+  id           String   @id @default(uuid())
+  question     String
+  answer       String
+  category     String
+  order        Int      @default(0)
+  is_published Boolean  @default(true)
+  created_at   DateTime @default(now())
+
+  @@map("faqs")
+}

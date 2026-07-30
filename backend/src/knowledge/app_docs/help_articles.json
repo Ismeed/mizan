@@ -1,0 +1,28 @@
+{
+  "articles": [
+    {
+      "id": "HELP_01",
+      "title": "Step-by-Step Guide: How to Calculate Islamic Inheritance (Mirath)",
+      "category": "Inheritance",
+      "summary": "Learn how to enter estate values, select surviving heirs, handles debts/wasiyyah, and view exact Fard fractions.",
+      "screen_id": "SCREEN_INHERITANCE",
+      "route": "/inheritance"
+    },
+    {
+      "id": "HELP_02",
+      "title": "Understanding Nisab & Calculating Zakat Accurately",
+      "category": "Zakat",
+      "summary": "A comprehensive guide on gold (85g) vs silver (595g) Nisab rates, asset valuation, and deducting short-term debts.",
+      "screen_id": "SCREEN_ZAKAT",
+      "route": "/zakat"
+    },
+    {
+      "id": "HELP_03",
+      "title": "How to Switch Between the 5 Islamic Madhhabs",
+      "category": "Settings",
+      "summary": "Explains Fiqh differences between Hanafi, Maliki, Shafi'i, Hanbali, and Ja'fari rules and how to switch in Settings.",
+      "screen_id": "SCREEN_SETTINGS",
+      "route": "/settings"
+    }
+  ]
+}

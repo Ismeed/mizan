@@ -1,0 +1,18 @@
+{
+  "common": {
+    "welcome": "Assalamu Alaikum",
+    "next": "Next",
+    "back": "Back",
+    "calculate": "Calculate",
+    "save": "Save Result",
+    "download": "Download Report",
+    "comingSoon": "Coming Soon"
+  },
+  "auth": {
+    "login": "Sign In",
+    "register": "Create Account",
+    "email": "Email Address",
+    "password": "Password",
+    "forgotPassword": "Forgot Password?"
+  }
+}

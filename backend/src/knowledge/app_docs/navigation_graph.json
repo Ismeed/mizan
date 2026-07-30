@@ -1,0 +1,141 @@
+{
+  "nodes": [
+    {
+      "id": "SCREEN_ONBOARDING",
+      "name": "Onboarding",
+      "route": "/onboarding"
+    },
+    {
+      "id": "SCREEN_LOGIN",
+      "name": "Login",
+      "route": "/auth/login"
+    },
+    {
+      "id": "SCREEN_REGISTER",
+      "name": "Register",
+      "route": "/auth/register"
+    },
+    {
+      "id": "SCREEN_DASHBOARD",
+      "name": "Dashboard",
+      "route": "/(tabs)/index"
+    },
+    {
+      "id": "SCREEN_INHERITANCE",
+      "name": "Inheritance",
+      "route": "/inheritance"
+    },
+    {
+      "id": "SCREEN_INHERITANCE_CALCULATOR",
+      "name": "Inheritance Calculator",
+      "route": "/inheritance/calculator"
+    },
+    {
+      "id": "SCREEN_INHERITANCE_RESULT",
+      "name": "Inheritance Result",
+      "route": "/inheritance/result"
+    },
+    {
+      "id": "SCREEN_ZAKAT",
+      "name": "Zakat",
+      "route": "/zakat"
+    },
+    {
+      "id": "SCREEN_ZAKAT_CALCULATOR",
+      "name": "Zakat Calculator",
+      "route": "/zakat/details"
+    },
+    {
+      "id": "SCREEN_ZAKAT_RESULT",
+      "name": "Zakat Result",
+      "route": "/zakat/results"
+    },
+    {
+      "id": "SCREEN_AI_ASSISTANT",
+      "name": "AI Assistant",
+      "route": "/(tabs)/ai-assistant"
+    },
+    {
+      "id": "SCREEN_HISTORY",
+      "name": "History",
+      "route": "/(tabs)/history"
+    },
+    {
+      "id": "SCREEN_LEARN",
+      "name": "Learn",
+      "route": "/(tabs)/learn"
+    },
+    {
+      "id": "SCREEN_PROFILE",
+      "name": "Profile",
+      "route": "/(tabs)/profile"
+    },
+    {
+      "id": "SCREEN_PREMIUM",
+      "name": "Premium Paywall",
+      "route": "/premium"
+    },
+    {
+      "id": "SCREEN_SETTINGS",
+      "name": "Settings",
+      "route": "/settings"
+    }
+  ],
+  "edges": [
+    {
+      "from": "SCREEN_ONBOARDING",
+      "to": "SCREEN_REGISTER",
+      "trigger": "Get Started button"
+    },
+    {
+      "from": "SCREEN_LOGIN",
+      "to": "SCREEN_DASHBOARD",
+      "trigger": "Successful Auth"
+    },
+    {
+      "from": "SCREEN_DASHBOARD",
+      "to": "SCREEN_INHERITANCE",
+      "trigger": "Inheritance Card"
+    },
+    {
+      "from": "SCREEN_DASHBOARD",
+      "to": "SCREEN_ZAKAT",
+      "trigger": "Zakat Card"
+    },
+    {
+      "from": "SCREEN_DASHBOARD",
+      "to": "SCREEN_AI_ASSISTANT",
+      "trigger": "Bottom Tab or Quick Ask"
+    },
+    {
+      "from": "SCREEN_INHERITANCE",
+      "to": "SCREEN_INHERITANCE_CALCULATOR",
+      "trigger": "Start Calculation"
+    },
+    {
+      "from": "SCREEN_INHERITANCE_CALCULATOR",
+      "to": "SCREEN_INHERITANCE_RESULT",
+      "trigger": "Calculate Shares"
+    },
+    {
+      "from": "SCREEN_INHERITANCE_RESULT",
+      "to": "SCREEN_PREMIUM",
+      "trigger": "Export Advanced PDF"
+    },
+    {
+      "from": "SCREEN_ZAKAT",
+      "to": "SCREEN_ZAKAT_CALCULATOR",
+      "trigger": "Next: Details"
+    },
+    {
+      "from": "SCREEN_ZAKAT_CALCULATOR",
+      "to": "SCREEN_ZAKAT_RESULT",
+      "trigger": "Calculate Zakat"
+    },
+    {
+      "from": "SCREEN_PROFILE",
+      "to": "SCREEN_SETTINGS",
+      "trigger": "Settings Gear Icon"
+    }
+  ]
+}

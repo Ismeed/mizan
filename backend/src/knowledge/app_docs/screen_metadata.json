@@ -1,0 +1,249 @@
+{
+  "screens": [
+    {
+      "id": "SCREEN_DASHBOARD",
+      "screen_name": "Dashboard Home",
+      "purpose": "Main overview showing net wealth, active Nisab rates, recent calculations, and quick access tabs.",
+      "route": "/(tabs)/index",
+      "deep_link": "mizan://dashboard",
+      "keywords": [
+        "home",
+        "dashboard",
+        "overview",
+        "summary",
+        "quick actions",
+        "recent"
+      ],
+      "related_screens": [
+        "SCREEN_INHERITANCE",
+        "SCREEN_ZAKAT",
+        "SCREEN_AI_ASSISTANT"
+      ],
+      "required_permissions": [
+        "AUTHENTICATED"
+      ],
+      "premium": false,
+      "estimated_user_intent": "Overview of financial status and quick navigation"
+    },
+    {
+      "id": "SCREEN_INHERITANCE",
+      "screen_name": "Inheritance Module",
+      "purpose": "Main landing for Faraid inheritance calculations and estate distribution.",
+      "route": "/inheritance",
+      "deep_link": "mizan://inheritance",
+      "keywords": [
+        "inheritance",
+        "mirath",
+        "faraid",
+        "estate",
+        "heirs",
+        "will",
+        "wasiyyah"
+      ],
+      "related_screens": [
+        "SCREEN_INHERITANCE_CALCULATOR",
+        "SCREEN_INHERITANCE_RESULT"
+      ],
+      "required_permissions": [
+        "AUTHENTICATED"
+      ],
+      "premium": false,
+      "estimated_user_intent": "Start an estate inheritance distribution calculation"
+    },
+    {
+      "id": "SCREEN_INHERITANCE_CALCULATOR",
+      "screen_name": "Inheritance Calculator Step Form",
+      "purpose": "Interactive heir selection form (Spouse, Sons, Daughters, Parents, Grandparents, Siblings, Debts, Wasiyyah).",
+      "route": "/inheritance/calculator",
+      "deep_link": "mizan://inheritance/calculator",
+      "keywords": [
+        "calculator",
+        "heir selection",
+        "estate value",
+        "debts",
+        "funeral expenses",
+        "wasiyyah input"
+      ],
+      "related_screens": [
+        "SCREEN_INHERITANCE_RESULT"
+      ],
+      "required_permissions": [
+        "AUTHENTICATED"
+      ],
+      "premium": false,
+      "estimated_user_intent": "Enter estate figures and heirs for calculation"
+    },
+    {
+      "id": "SCREEN_INHERITANCE_RESULT",
+      "screen_name": "Inheritance Distribution Results",
+      "purpose": "Displays mathematical Faraid shares (Fraction, Amount NGN/USD, Percentage, Awl/Radd notes, Quranic citations).",
+      "route": "/inheritance/result",
+      "deep_link": "mizan://inheritance/result",
+      "keywords": [
+        "results",
+        "shares",
+        "fraction",
+        "breakdown",
+        "awl",
+        "radd",
+        "pdf export",
+        "save calculation"
+      ],
+      "related_screens": [
+        "SCREEN_PDF_REPORTS",
+        "SCREEN_SCHOLAR_MODE"
+      ],
+      "required_permissions": [
+        "AUTHENTICATED"
+      ],
+      "premium": false,
+      "estimated_user_intent": "Review generated inheritance shares and export PDF"
+    },
+    {
+      "id": "SCREEN_ZAKAT",
+      "screen_name": "Zakat Module",
+      "purpose": "Zakat asset selection (Cash, Gold, Silver, Stocks, Business Inventory, Agriculture, Livestock, Debts).",
+      "route": "/zakat",
+      "deep_link": "mizan://zakat",
+      "keywords": [
+        "zakat",
+        "nisab",
+        "gold rate",
+        "silver rate",
+        "wealth type",
+        "hawl"
+      ],
+      "related_screens": [
+        "SCREEN_ZAKAT_CALCULATOR",
+        "SCREEN_ZAKAT_HISTORY"
+      ],
+      "required_permissions": [
+        "AUTHENTICATED"
+      ],
+      "premium": false,
+      "estimated_user_intent": "Calculate Zakat obligation against current Nisab"
+    },
+    {
+      "id": "SCREEN_ZAKAT_CALCULATOR",
+      "screen_name": "Zakat Calculator Form",
+      "purpose": "Asset input fields for cash, precious metals, business assets, and debt deductions.",
+      "route": "/zakat/details",
+      "deep_link": "mizan://zakat/details",
+      "keywords": [
+        "asset input",
+        "nisab check",
+        "deductions",
+        "net wealth",
+        "gold weight"
+      ],
+      "related_screens": [
+        "SCREEN_ZAKAT_RESULTS"
+      ],
+      "required_permissions": [
+        "AUTHENTICATED"
+      ],
+      "premium": false,
+      "estimated_user_intent": "Fill in asset values for Zakat calculation"
+    },
+    {
+      "id": "SCREEN_AI_ASSISTANT",
+      "screen_name": "AI Scholar Assistant",
+      "purpose": "AI-powered chat assistant providing Dual-RAG Islamic reference citations and app guidance.",
+      "route": "/(tabs)/ai-assistant",
+      "deep_link": "mizan://ai-assistant",
+      "keywords": [
+        "ai",
+        "assistant",
+        "scholar",
+        "fiqh",
+        "ask",
+        "quran reference",
+        "hadith citation",
+        "madhhab guide"
+      ],
+      "related_screens": [
+        "SCREEN_HELP_CENTER",
+        "SCREEN_SCHOLAR_MODE"
+      ],
+      "required_permissions": [
+        "AUTHENTICATED"
+      ],
+      "premium": false,
+      "estimated_user_intent": "Ask questions on Islamic finance or app guidance"
+    },
+    {
+      "id": "SCREEN_PREMIUM",
+      "screen_name": "MIZAN Premium Paywall & Subscriptions",
+      "purpose": "Upgrade screen for unlocking unlimited PDF reports, advanced Multi-Madhhab comparisons, and Scholar review.",
+      "route": "/premium",
+      "deep_link": "mizan://premium",
+      "keywords": [
+        "premium",
+        "upgrade",
+        "subscription",
+        "paywall",
+        "billing",
+        "features",
+        "pricing"
+      ],
+      "related_screens": [
+        "SCREEN_SETTINGS",
+        "SCREEN_PROFILE"
+      ],
+      "required_permissions": [
+        "AUTHENTICATED"
+      ],
+      "premium": false,
+      "estimated_user_intent": "Upgrade account to Premium tier"
+    },
+    {
+      "id": "SCREEN_SETTINGS",
+      "screen_name": "App Settings & Preferences",
+      "purpose": "Manage language, default Madhhab school, currency (NGN/USD), dark mode, push notifications, and security.",
+      "route": "/settings",
+      "deep_link": "mizan://settings",
+      "keywords": [
+        "settings",
+        "preferences",
+        "madhhab change",
+        "currency",
+        "language",
+        "dark mode",
+        "notifications"
+      ],
+      "related_screens": [
+        "SCREEN_PROFILE",
+        "SCREEN_SECURITY"
+      ],
+      "required_permissions": [
+        "AUTHENTICATED"
+      ],
+      "premium": false,
+      "estimated_user_intent": "Customize application settings and default Fiqh school"
+    },
+    {
+      "id": "SCREEN_HELP_CENTER",
+      "screen_name": "Help Center & FAQs",
+      "purpose": "Searchable knowledge base, FAQs, and support contact details.",
+      "route": "/help",
+      "deep_link": "mizan://help",
+      "keywords": [
+        "help",
+        "faq",
+        "support",
+        "contact",
+        "guide",
+        "troubleshooting"
+      ],
+      "related_screens": [
+        "SCREEN_AI_ASSISTANT",
+        "SCREEN_CONTACT_SUPPORT"
+      ],
+      "required_permissions": [
+        "PUBLIC"
+      ],
+      "premium": false,
+      "estimated_user_intent": "Search FAQs or get customer support"
+    }
+  ]
+}

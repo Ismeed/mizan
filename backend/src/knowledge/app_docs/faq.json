@@ -1,0 +1,60 @@
+{
+  "faqs": [
+    {
+      "question": "Where do I calculate inheritance?",
+      "answer": "Tap the 'Inheritance' card on the Dashboard home screen or navigate to `/inheritance`. Tap 'Start Calculation' to select heirs and enter estate figures.",
+      "screen_id": "SCREEN_INHERITANCE",
+      "route": "/inheritance",
+      "category": "Navigation"
+    },
+    {
+      "question": "How do I calculate zakat?",
+      "answer": "Tap the 'Zakat' card on the Dashboard or navigate to `/zakat`. Select your asset types (Cash, Gold, Stocks, Business), tap 'Next: Enter Details', input your values, and tap 'Calculate Zakat'.",
+      "screen_id": "SCREEN_ZAKAT",
+      "route": "/zakat",
+      "category": "Zakat"
+    },
+    {
+      "question": "How do I change my default Madhhab?",
+      "answer": "Go to Profile tab (`/(tabs)/profile`) -> tap Settings gear icon -> select 'Madhhab Preference' and choose between Hanafi, Maliki, Shafi'i, Hanbali, or Ja'fari.",
+      "screen_id": "SCREEN_SETTINGS",
+      "route": "/settings",
+      "category": "Settings"
+    },
+    {
+      "question": "How do I export my calculation as a PDF?",
+      "answer": "After completing an Inheritance or Zakat calculation, tap the 'Download PDF Report' button on the results screen. You can save or share the generated PDF report.",
+      "screen_id": "SCREEN_INHERITANCE_RESULT",
+      "route": "/inheritance/result",
+      "category": "Reports"
+    },
+    {
+      "question": "What features are included in MIZAN Premium?",
+      "answer": "MIZAN Premium includes unlimited PDF report exports, detailed 5-Madhhab comparative breakdowns, priority AI Scholar consultations, and estate profile saving.",
+      "screen_id": "SCREEN_PREMIUM",
+      "route": "/premium",
+      "category": "Subscription"
+    },
+    {
+      "question": "How do I ask the AI Assistant a question?",
+      "answer": "Tap the 'AI Assistant' tab at the bottom of the screen (`/(tabs)/ai-assistant`). Type any question about Islamic finance or app features into the chat box and press send.",
+      "screen_id": "SCREEN_AI_ASSISTANT",
+      "route": "/(tabs)/ai-assistant",
+      "category": "AI Assistant"
+    },
+    {
+      "question": "Where can I view my past calculations?",
+      "answer": "Tap the 'History' tab in the bottom navigation bar (`/(tabs)/history`). You can filter past calculations by All, Inheritance, or Zakat.",
+      "screen_id": "SCREEN_HISTORY",
+      "route": "/(tabs)/history",
+      "category": "History"
+    },
+    {
+      "question": "Does MIZAN perform financial calculations using AI?",
+      "answer": "No. All Islamic financial calculations (Mirath and Zakat) are calculated deterministically by MIZAN's offline Rule Engine. The AI Assistant only explains and references sources for verified outputs.",
+      "screen_id": "SCREEN_DASHBOARD",
+      "route": "/(tabs)/index",
+      "category": "Architecture"
+    }
+  ]
+}

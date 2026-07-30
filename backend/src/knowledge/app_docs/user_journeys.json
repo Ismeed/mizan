@@ -1,0 +1,27 @@
+{
+  "journeys": [
+    {
+      "user_type": "New User",
+      "goal": "First-time estate inheritance setup",
+      "steps": [
+        "Open app -> Complete Onboarding -> Register Account",
+        "Select default Madhhab preference (e.g., Maliki / Hanafi)",
+        "Tap Inheritance Card on Dashboard",
+        "Input total estate gross value, funeral cost, and debts",
+        "Select surviving heirs (Spouse, Sons, Daughters, Mother, Father)",
+        "Tap Calculate -> Review Faraid fraction distribution",
+        "Download PDF Report"
+      ]
+    },
+    {
+      "user_type": "Returning User",
+      "goal": "Annual Zakat calculation",
+      "steps": [
+        "Log in -> Tap Zakat Card on Dashboard",
+        "Review live gold & silver Nisab rates",
+        "Input liquid cash, gold weight, stocks, and business assets",
+        "View Zakat Due summary (2.5%) -> Save calculation to History"
+      ]
+    }
+  ]
+}

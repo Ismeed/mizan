@@ -1,0 +1,48 @@
+{
+  "features": [
+    {
+      "id": "FEATURE_MIRATH_ENGINE",
+      "name": "Islamic Inheritance Rule Engine",
+      "description": "Deterministic Faraid calculator enforcing exact Quranic fractions, Awl, Radd, Al-Umariyyatan, and 5 Madhhab overrides.",
+      "components": [
+        "SCREEN_INHERITANCE_CALCULATOR",
+        "SCREEN_INHERITANCE_RESULT",
+        "mirath.engine.ts"
+      ],
+      "requires_premium": false
+    },
+    {
+      "id": "FEATURE_ZAKAT_ENGINE",
+      "name": "Zakat Assessment Engine",
+      "description": "Evaluates net wealth against live Gold (85g) and Silver (595g) Nisab thresholds across multiple asset categories.",
+      "components": [
+        "SCREEN_ZAKAT_CALCULATOR",
+        "SCREEN_ZAKAT_RESULT",
+        "zakat.engine.ts"
+      ],
+      "requires_premium": false
+    },
+    {
+      "id": "FEATURE_DUAL_RAG_AI",
+      "name": "Dual-RAG AI Scholar",
+      "description": "AI Assistant retrieving from Islamic Knowledge Base (Quran/Hadith/Fiqh) and App Knowledge Base (Sitemap/Features).",
+      "components": [
+        "SCREEN_AI_ASSISTANT",
+        "dual-rag.retriever.ts",
+        "islamic-rag.engine.ts",
+        "application-rag.engine.ts"
+      ],
+      "requires_premium": false
+    },
+    {
+      "id": "FEATURE_PDF_REPORTS",
+      "name": "PDF Report Generator",
+      "description": "Generates branded downloadable PDF reports for Faraid estate allocations and Zakat calculations.",
+      "components": [
+        "SCREEN_INHERITANCE_RESULT",
+        "report.service.ts"
+      ],
+      "requires_premium": true
+    }
+  ]
+}
