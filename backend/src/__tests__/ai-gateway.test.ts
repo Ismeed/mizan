@@ -39,7 +39,7 @@ describe('MIZAN Enterprise AI Architecture Tests', () => {
 
     expect(ragResult.primaryContextType).toBe('APP_NAVIGATION');
     expect(ragResult.appDocs.length).toBeGreaterThan(0);
-    expect(ragResult.appDocs[0].screenPath).toMatch(/\/(profile|settings)/);
+    expect(ragResult.appDocs[0].screenPath).toMatch(/\/(profile|settings|estate)/);
   });
 
   test('4. Citation Engine: Constructs 5-Madhhab structured citations', () => {

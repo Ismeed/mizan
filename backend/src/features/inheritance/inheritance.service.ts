@@ -1,6 +1,8 @@
 import { prisma } from '../../config/database';
-import { calculateMirath } from '@mizan/shared';
+import { calculateMirath, MadhhabCode, CalculationProfile } from '@mizan/shared';
 import { HeirsInput, MirathResult } from '@mizan/shared';
+import { CalculationProfileResolverService } from '../profile/services/calculation-profile-resolver.service';
+import { CalculationProfileSnapshotService } from '../profile/services/calculation-profile-snapshot.service';
 
 export interface InheritanceCalculateInput {
   userId: string;
@@ -8,22 +10,45 @@ export interface InheritanceCalculateInput {
   debts: number;
   funeralExpenses: number;
   wasiyyah: number;
-  currency: string;
-  madhhab: string;
+  currency?: string;
+  madhhab?: string;
   notes?: string;
   heirs: HeirsInput;
+  profileOverrides?: {
+    madhhab?: MadhhabCode;
+    currency?: string;
+    language?: string;
+  };
 }
 
 export class InheritanceService {
-  async calculate(input: InheritanceCalculateInput): Promise<{ calculationId: string; result: MirathResult }> {
-    const { userId, totalEstate, debts, funeralExpenses, wasiyyah, currency, madhhab, notes, heirs } = input;
+  async calculate(input: InheritanceCalculateInput): Promise<{ calculationId: string; result: MirathResult; profile: CalculationProfile }> {
+    const { userId, totalEstate, debts, funeralExpenses, wasiyyah, currency, madhhab, notes, heirs, profileOverrides } = input;
+
+    // Resolve authoritative Calculation Profile
+    const requestedMadhhab = (profileOverrides?.madhhab || madhhab) as MadhhabCode | undefined;
+    const requestedCurrency = profileOverrides?.currency || currency;
+
+    const { profile } = await CalculationProfileResolverService.resolveProfile({
+      userId,
+      module: 'MIRATH',
+      calculationOverrides: {
+        madhhab: requestedMadhhab,
+        currency: requestedCurrency,
+        language: profileOverrides?.language,
+      },
+    });
+
+    const resolvedMadhhab = profile.preferences.madhhab.resolved;
+    const resolvedCurrency = profile.preferences.currency.code;
 
     const netEstate = Math.max(0, totalEstate - debts - funeralExpenses - wasiyyah);
 
+    // Execute rule engine with resolved madhhab
     const result = calculateMirath({
       netEstate,
       heirs,
-      madhhab: madhhab as any,
+      madhhab: resolvedMadhhab as any,
     });
 
     const saved = await prisma.$transaction(async (tx) => {
@@ -43,8 +68,8 @@ export class InheritanceService {
           funeral_expenses: funeralExpenses,
           wasiyyah,
           net_estate: netEstate,
-          currency,
-          madhhab,
+          currency: resolvedCurrency,
+          madhhab: resolvedMadhhab,
           notes: notes ?? null,
         },
       });
@@ -67,10 +92,13 @@ export class InheritanceService {
         await tx.inheritanceHeir.createMany({ data: heirInserts });
       }
 
+      // Freeze and attach profile snapshot
+      await CalculationProfileSnapshotService.createFrozenSnapshot(profile, calculation.id);
+
       return calculation.id;
     });
 
-    return { calculationId: saved, result };
+    return { calculationId: saved, result, profile };
   }
 
   async getHistory(userId: string) {
@@ -80,6 +108,7 @@ export class InheritanceService {
         inheritance: {
           include: { heirs: true },
         },
+        profile_snapshot: true,
       },
       orderBy: { created_at: 'desc' },
       take: 50,
@@ -88,8 +117,6 @@ export class InheritanceService {
 
   /**
    * Get a single inheritance calculation by ID (enforces strict ownership check).
-   * Throws 404 if calculation does not exist.
-   * Throws 403 Forbidden if calculation belongs to another user.
    */
   async getById(id: string, userId: string) {
     const calculation = await prisma.calculation.findUnique({
@@ -98,6 +125,7 @@ export class InheritanceService {
         inheritance: {
           include: { heirs: true },
         },
+        profile_snapshot: true,
       },
     });
 
@@ -117,7 +145,7 @@ export class InheritanceService {
   }
 
   /**
-   * Delete a calculation (enforces strict ownership check).
+   * Delete a calculation.
    */
   async delete(id: string, userId: string) {
     const calculation = await prisma.calculation.findUnique({

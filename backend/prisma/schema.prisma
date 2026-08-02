@@ -39,8 +39,11 @@ model User {
   subscriptions    Subscription[]
   notifications    Notification[]
   audit_logs       AuditLog[]
-  app_settings     AppSettings?
-  device_tokens    DeviceToken[]
+  app_settings        AppSettings?
+  device_tokens       DeviceToken[]
+  governance_reviewer GovernanceReviewer?
+  user_preference     UserPreference?
+  profile_snapshots   CalculationProfileSnapshot[]
 
   @@map("users")
 }
@@ -72,16 +75,18 @@ model OtpCode {
 }
 
 model Calculation {
-  id         String   @id @default(uuid())
-  user_id    String
-  user       User     @relation(fields: [user_id], references: [id])
-  type       String   // "INHERITANCE" or "ZAKAT"
-  title      String?
-  created_at DateTime @default(now())
+  id                  String   @id @default(uuid())
+  user_id             String
+  user                User     @relation(fields: [user_id], references: [id])
+  type                String   // "INHERITANCE" or "ZAKAT"
+  title               String?
+  profile_snapshot_id String?  @unique
+  created_at          DateTime @default(now())
 
-  inheritance InheritanceCalculation?
-  zakat       ZakatCalculation?
-  reports     Report[]
+  inheritance      InheritanceCalculation?
+  zakat            ZakatCalculation?
+  reports          Report[]
+  profile_snapshot CalculationProfileSnapshot?
 
   @@map("calculations")
 }
@@ -286,4 +291,1254 @@ model Faq {
   created_at   DateTime @default(now())
 
   @@map("faqs")
+}
+
+// ── KNOWLEDGE GOVERNANCE MODELS ──────────────────────────────────────────────
+
+model KnowledgeRecord {
+  id                      String   @id @default(uuid())
+  knowledge_id            String   @unique
+  record_type             String   // "SOURCE" | "RULE" | "EVIDENCE" | "EXPLANATION" | "ENTITY"
+  module                  String   // "MIRATH" | "ZAKAT" | "SHARED"
+  topic                   String
+  subtopic                String
+  status                  String   @default("DRAFT") // DRAFT, ACADEMIC_REVIEW, SHARIA_REVIEW, TECHNICAL_VALIDATION, APPROVED, INDEXED, PRODUCTION, CHANGES_REQUESTED, REJECTED, DEPRECATED, ARCHIVED
+  version                 String   @default("1.0.0")
+  effective_from          DateTime?
+  effective_until         DateTime?
+  supersedes_id           String?
+  superseded_by_id        String?
+  source_provenance_json  String
+  evidence_ids_json       String   @default("[]")
+  related_rule_ids_json   String   @default("[]")
+  related_explanation_ids String   @default("[]")
+  madhhab_scope_json      String   @default("[]")
+  language_scope_json     String   @default("[]")
+  content_json            String
+  content_checksum        String
+  created_by              String
+  created_at              DateTime @default(now())
+  updated_by              String
+  updated_at              DateTime @updatedAt
+
+  versions            KnowledgeVersion[]
+  assignments         ReviewAssignment[]
+  academic_reviews    AcademicReview[]
+  sharia_reviews      ShariaReview[]
+  technical_reviews   TechnicalReview[]
+  approvals           ApprovalRecord[]
+  change_requests     ChangeRequest[]
+  rejections          RejectionRecord[]
+  publications        PublicationRecord[]
+  indexing_records    IndexingRecord[]
+  audit_events        KnowledgeAuditEvent[]
+
+  @@map("knowledge_records")
+}
+
+model KnowledgeVersion {
+  id               String          @id @default(uuid())
+  knowledge_id     String
+  record           KnowledgeRecord @relation(fields: [knowledge_id], references: [knowledge_id], onDelete: Cascade)
+  version          String
+  status           String
+  content_checksum String
+  payload_json     String
+  created_by       String
+  created_at       DateTime        @default(now())
+
+  @@unique([knowledge_id, version])
+  @@map("knowledge_versions")
+}
+
+model GovernanceReviewer {
+  id             String   @id @default(uuid())
+  user_id        String   @unique
+  user           User     @relation(fields: [user_id], references: [id])
+  role           String   // "RESEARCH_ASSISTANT" | "DATA_EDITOR" | "ACADEMIC_REVIEWER" | "SHARIA_REVIEWER" | "TECHNICAL_REVIEWER" | "KNOWLEDGE_ADMIN" | "INDEXING_SERVICE" | "PUBLICATION_ADMIN" | "AUDITOR"
+  qualifications String?
+  is_active      Boolean  @default(true)
+  created_at     DateTime @default(now())
+  updated_at     DateTime @updatedAt
+
+  assignments       ReviewAssignment[]
+  academic_reviews  AcademicReview[]
+  sharia_reviews    ShariaReview[]
+  technical_reviews TechnicalReview[]
+  approvals         ApprovalRecord[]
+
+  @@map("governance_reviewers")
+}
+
+model ReviewAssignment {
+  id             String             @id @default(uuid())
+  knowledge_id   String
+  record         KnowledgeRecord    @relation(fields: [knowledge_id], references: [knowledge_id], onDelete: Cascade)
+  reviewer_id    String
+  reviewer       GovernanceReviewer @relation(fields: [reviewer_id], references: [id])
+  stage          String             // "ACADEMIC" | "SHARIA" | "TECHNICAL"
+  is_completed   Boolean            @default(false)
+  assigned_at    DateTime           @default(now())
+  completed_at   DateTime?
+
+  @@map("review_assignments")
+}
+
+model AcademicReview {
+  id             String             @id @default(uuid())
+  knowledge_id   String
+  record         KnowledgeRecord    @relation(fields: [knowledge_id], references: [knowledge_id], onDelete: Cascade)
+  reviewer_id    String
+  reviewer       GovernanceReviewer @relation(fields: [reviewer_id], references: [id])
+  status         String             // "PASSED" | "CHANGES_REQUESTED" | "REJECTED"
+  notes          String
+  created_at     DateTime           @default(now())
+
+  @@map("academic_reviews")
+}
+
+model ShariaReview {
+  id             String             @id @default(uuid())
+  knowledge_id   String
+  record         KnowledgeRecord    @relation(fields: [knowledge_id], references: [knowledge_id], onDelete: Cascade)
+  reviewer_id    String
+  reviewer       GovernanceReviewer @relation(fields: [reviewer_id], references: [id])
+  status         String             // "PASSED" | "CHANGES_REQUESTED" | "REJECTED"
+  scholarly_notes String
+  created_at     DateTime           @default(now())
+
+  @@map("sharia_reviews")
+}
+
+model TechnicalReview {
+  id             String             @id @default(uuid())
+  knowledge_id   String
+  record         KnowledgeRecord    @relation(fields: [knowledge_id], references: [knowledge_id], onDelete: Cascade)
+  reviewer_id    String
+  reviewer       GovernanceReviewer @relation(fields: [reviewer_id], references: [id])
+  status         String             // "PASSED" | "CHANGES_REQUESTED" | "REJECTED"
+  validation_logs String
+  created_at     DateTime           @default(now())
+
+  @@map("technical_reviews")
+}
+
+model ApprovalRecord {
+  id               String             @id @default(uuid())
+  knowledge_id     String
+  record           KnowledgeRecord    @relation(fields: [knowledge_id], references: [knowledge_id], onDelete: Cascade)
+  approver_id      String
+  approver         GovernanceReviewer @relation(fields: [approver_id], references: [id])
+  version          String
+  content_checksum String
+  effective_date   DateTime
+  comments         String?
+  created_at       DateTime           @default(now())
+
+  @@map("approval_records")
+}
+
+model ChangeRequest {
+  id           String          @id @default(uuid())
+  knowledge_id String
+  record       KnowledgeRecord @relation(fields: [knowledge_id], references: [knowledge_id], onDelete: Cascade)
+  requested_by String
+  reason       String
+  target_stage String
+  created_at   DateTime        @default(now())
+
+  @@map("change_requests")
+}
+
+model RejectionRecord {
+  id           String          @id @default(uuid())
+  knowledge_id String
+  record       KnowledgeRecord @relation(fields: [knowledge_id], references: [knowledge_id], onDelete: Cascade)
+  rejected_by  String
+  reason       String
+  created_at   DateTime        @default(now())
+
+  @@map("rejection_records")
+}
+
+model PublicationRecord {
+  id                 String          @id @default(uuid())
+  knowledge_id       String
+  record             KnowledgeRecord @relation(fields: [knowledge_id], references: [knowledge_id], onDelete: Cascade)
+  published_by       String
+  version            String
+  content_checksum   String
+  gate_report_json   String
+  created_at         DateTime        @default(now())
+
+  @@map("publication_records")
+}
+
+model IndexingRecord {
+  id               String          @id @default(uuid())
+  knowledge_id     String
+  record           KnowledgeRecord @relation(fields: [knowledge_id], references: [knowledge_id], onDelete: Cascade)
+  indexed_by       String
+  version          String
+  index_checksum   String
+  vector_namespace String
+  created_at       DateTime        @default(now())
+
+  @@map("indexing_records")
+}
+
+model KnowledgeAuditEvent {
+  id                String          @id @default(uuid())
+  event_id          String          @unique @default(uuid())
+  knowledge_id      String
+  record            KnowledgeRecord @relation(fields: [knowledge_id], references: [knowledge_id], onDelete: Cascade)
+  actor_id          String
+  actor_role        String
+  action            String
+  old_status        String?
+  new_status        String?
+  version           String
+  previous_checksum String?
+  new_checksum      String?
+  reason            String?
+  metadata_json     String?
+  timestamp         DateTime        @default(now())
+
+  @@map("knowledge_audit_events")
+}
+
+model SourceDocument {
+  id               String   @id @default(uuid())
+  source_file_id   String   @unique
+  title            String
+  author           String
+  publisher        String?
+  edition          String?
+  file_path        String
+  file_checksum    String
+  created_at       DateTime @default(now())
+
+  @@map("source_documents")
+}
+
+model SourcePermission {
+  id                   String   @id @default(uuid())
+  source_file_id       String
+  licence_status       String   // "PUBLIC_DOMAIN" | "PERMITTED" | "RESTRICTED"
+  permission_reference String?
+  granted_by           String?
+  created_at           DateTime @default(now())
+
+  @@map("source_permissions")
+}
+
+model KnowledgeManifest {
+  id               String   @id @default(uuid())
+  manifest_name    String   @unique
+  module           String   // "MIRATH" | "ZAKAT" | "SHARED" | "RELEASE"
+  version          String
+  manifest_json    String
+  manifest_checksum String
+  generated_by     String
+  created_at       DateTime @default(now())
+
+  @@map("knowledge_manifests")
+}
+
+// ── PHASE 2: CALCULATION PROFILE & PREFERENCE RESOLUTION MODELS ─────────────
+
+model UserPreference {
+  id                    String   @id @default(uuid())
+  user_id               String   @unique
+  user                  User     @relation(fields: [user_id], references: [id])
+  preferred_madhhab     String   @default("MALIKI") // "HANAFI" | "MALIKI" | "SHAFII" | "HANBALI" | "JAFARI"
+  preferred_currency    String   @default("NGN")
+  preferred_language    String   @default("en")
+  preferred_locale      String   @default("en-NG")
+  country_code          String   @default("NG")
+  timezone              String   @default("Africa/Lagos")
+  created_at            DateTime @default(now())
+  updated_at            DateTime @updatedAt
+
+  @@map("user_preferences")
+}
+
+model CalculationProfileSnapshot {
+  id                               String       @id @default(uuid())
+  calculation_id                   String?      @unique
+  calculation                      Calculation? @relation(fields: [calculation_id], references: [id])
+  user_id                          String
+  user                             User         @relation(fields: [user_id], references: [id])
+  module                           String       // "MIRATH" | "ZAKAT"
+  
+  // Madhhab preference snapshot
+  madhhab                          String       // "HANAFI" | "MALIKI" | "SHAFII" | "HANBALI" | "JAFARI"
+  madhhab_source                   String       // "USER_PROFILE" | "CALCULATION_OVERRIDE" | "SYSTEM_DEFAULT" | etc
+  
+  // Currency preference snapshot
+  currency_code                    String
+  currency_symbol_snapshot         String
+  currency_decimal_places_snapshot Int          @default(2)
+  currency_locale_snapshot         String
+  currency_source                  String
+  
+  // Language preference snapshot
+  language_tag                     String
+  locale                           String
+  text_direction                   String       // "LTR" | "RTL"
+  language_source                  String
+  
+  // Region preference snapshot
+  country_code                     String
+  timezone                         String
+  region_source                    String
+  
+  // Versioning snapshots
+  profile_schema_version           String       @default("1.0.0")
+  rule_engine_version              String       @default("1.0.0")
+  knowledge_release_version        String       @default("1.0.0")
+  report_schema_version           String       @default("1.0.0")
+  
+  // Status and integrity
+  checksum                         String
+  profile_status                   String       @default("FROZEN") // "ACTIVE" | "FROZEN" | "INCOMPLETE_HISTORICAL_CONTEXT"
+  created_at                       DateTime     @default(now())
+  frozen_at                        DateTime?    @default(now())
+
+  @@map("calculation_profile_snapshots")
+}
+
+model MadhhabDefinition {
+  id                String   @id // "HANAFI" | "MALIKI" | "SHAFII" | "HANBALI" | "JAFARI"
+  display_names_json String   // Json map of localized names
+  is_active         Boolean  @default(true)
+  supported_modules String   // Json array
+  created_at        DateTime @default(now())
+  updated_at        DateTime @updatedAt
+
+  @@map("madhhab_definitions")
+}
+
+model CurrencyDefinition {
+  code               String   @id // "NGN", "USD", etc.
+  display_names_json String
+  symbol             String
+  decimal_places     Int      @default(2)
+  default_locale     String
+  is_active          Boolean  @default(true)
+  created_at         DateTime @default(now())
+  updated_at         DateTime @updatedAt
+
+  @@map("currency_definitions")
+}
+
+model LanguageDefinition {
+  tag                String   @id // "en", "ha", "ar", etc.
+  display_names_json String
+  locale             String
+  direction          String   // "LTR" | "RTL"
+  is_active          Boolean  @default(true)
+  created_at         DateTime @default(now())
+  updated_at         DateTime @updatedAt
+
+  @@map("language_definitions")
+}
+
+model KnowledgeRelease {
+  id                 String   @id @default(uuid())
+  version            String   @unique
+  is_active          Boolean  @default(true)
+  released_at        DateTime @default(now())
+  release_notes      String?
+
+  @@map("knowledge_releases")
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// PHASE 3 — CANONICAL RULE STANDARD
+// ══════════════════════════════════════════════════════════════════════════════
+
+/// Permanent, immutable record for a single canonical Mirath or Zakat rule version.
+/// Each rule version is write-once: new versions create new records.
+/// Rules cannot be promoted to PRODUCTION without full governance review.
+model RuleRecord {
+  id                      String    @id @default(cuid())
+  /// Permanent rule identifier — format: MODULE-TYPE-SUBJECT-CONTEXT-NNN
+  rule_id                 String
+  /// Semantic version of this rule, e.g. "1.0.0"
+  rule_version            String
+  /// MODULE: MIRATH | ZAKAT | SHARED
+  module                  String
+  /// Rule type from the rule-types.registry
+  rule_type               String
+  /// JSON array of madhhab scope values
+  madhhab_scope_json      Json
+  /// Knowledge release version this rule targets
+  knowledge_release_version String
+  /// English title
+  title_en                String
+  /// Arabic title (optional)
+  title_ar                String?
+  /// English description
+  description_en          String    @db.Text
+  /// Full canonical rule JSON (CanonicalRule contract)
+  rule_content_json       Json
+  /// SHA-256 checksum of rule content — verified on every load
+  content_checksum        String    @db.VarChar(64)
+  /// MIZAN rule schema version this was authored against
+  schema_version          String
+  /// Governance lifecycle status
+  status                  String    @default("DRAFT")
+  /// Whether this is a synthetic test fixture — cannot be PRODUCTION
+  is_test_fixture         Boolean   @default(false)
+  /// Override priority within a family (higher = applied later)
+  priority                Int       @default(0)
+  /// Which rule family this belongs to
+  rule_family_id          String?
+  family                  RuleFamily? @relation(fields: [rule_family_id], references: [id])
+  /// The rule record this overrides, if any
+  overrides_rule_id       String?
+  /// Rules that must precede this one
+  requires_previous_rules Json      @default("[]")
+  /// Rules incompatible with this one
+  incompatible_with_rules Json      @default("[]")
+  created_by              String
+  created_at              DateTime  @default(now())
+  updated_by              String
+  updated_at              DateTime  @updatedAt
+  /// Effective date range
+  effective_from          DateTime?
+  effective_until         DateTime?
+  /// Which rule record this supersedes
+  supersedes              String?
+  /// Free-text change notes
+  changelog_note          String?   @db.Text
+  /// Review notes from academic/sharia/technical reviewers
+  review_notes            String?   @db.Text
+
+  evidenceLinks           RuleEvidenceLink[]
+  explanationLinks        RuleExplanationLink[]
+  sourceLinks             RuleSourceLink[]
+  testCases               RuleTestCase[]
+  releaseMemberships      RuleReleaseMembership[]
+  executionAudits         RuleExecutionAudit[]
+  validationResults       RuleValidationResult[]
+
+  @@unique([rule_id, rule_version])
+  @@index([rule_id])
+  @@index([module, status])
+  @@index([rule_family_id])
+  @@index([knowledge_release_version])
+  @@map("rule_records")
+}
+
+/// Groups related rules (base + madhhab overrides) into a family.
+/// Conflict resolution policy is set at the family level.
+model RuleFamily {
+  id                String    @id @default(cuid())
+  /// Unique family identifier, e.g. "FAMILY-SPOUSE-FIXED-SHARE"
+  rule_family_id    String    @unique
+  title_en          String
+  module            String
+  rule_type         String
+  /// The base rule_id that anchors this family
+  base_rule_id      String
+  /// Conflict resolution policy: SPECIFICITY_WINS | PRIORITY_WINS | STOP_AND_LOG
+  conflict_policy   String    @default("SPECIFICITY_WINS")
+  schema_version    String
+  created_at        DateTime  @default(now())
+  updated_at        DateTime  @updatedAt
+
+  rules             RuleRecord[]
+  overrides         RuleOverride[]
+
+  @@index([module])
+  @@map("rule_families")
+}
+
+/// Records an explicit override relationship between two rules in a family.
+/// Overrides must be declared — implicit overrides are not permitted.
+model RuleOverride {
+  id                    String    @id @default(cuid())
+  rule_family_id        String
+  family                RuleFamily @relation(fields: [rule_family_id], references: [id])
+  /// The base rule_id being overridden
+  base_rule_id          String
+  /// The rule_id of the override rule
+  override_rule_id      String
+  /// Which madhhabs this override applies to
+  madhhab_scope_json    Json
+  /// Why this override exists (governance audit trail)
+  override_reason       String    @db.Text
+  created_by            String
+  created_at            DateTime  @default(now())
+
+  @@unique([rule_family_id, base_rule_id, override_rule_id])
+  @@map("rule_overrides")
+}
+
+/// Junction table linking a rule record to its supporting evidence (KnowledgeRecord).
+model RuleEvidenceLink {
+  id                  String    @id @default(cuid())
+  rule_record_id      String
+  ruleRecord          RuleRecord @relation(fields: [rule_record_id], references: [id])
+  /// Knowledge record ID of the evidence (type: SOURCE or EVIDENCE)
+  evidence_id         String
+  evidence_version    String
+  /// e.g. "Quran 4:11"
+  reference_label     String
+  /// QURAN | HADITH | FIQH_BOOK | CONSENSUS | SCHOLARLY_OPINION
+  evidence_type       String
+  /// DEFINITIVE | STRONG | ACCEPTABLE | WEAK
+  evidence_strength   String
+  /// Whether this evidence is mandatory for the rule to be valid
+  is_mandatory        Boolean   @default(true)
+  created_at          DateTime  @default(now())
+
+  @@index([rule_record_id])
+  @@index([evidence_id])
+  @@map("rule_evidence_links")
+}
+
+/// Junction table linking a rule record to its public explanations (KnowledgeRecord).
+model RuleExplanationLink {
+  id                  String    @id @default(cuid())
+  rule_record_id      String
+  ruleRecord          RuleRecord @relation(fields: [rule_record_id], references: [id])
+  explanation_id      String
+  explanation_version String
+  /// GENERAL_USER | SCHOLAR | TECHNICAL
+  audience_type       String
+  language_code       String    @db.VarChar(10)
+  created_at          DateTime  @default(now())
+
+  @@index([rule_record_id])
+  @@map("rule_explanation_links")
+}
+
+/// Junction table linking a rule record to its physical source documents.
+model RuleSourceLink {
+  id               String    @id @default(cuid())
+  rule_record_id   String
+  ruleRecord       RuleRecord @relation(fields: [rule_record_id], references: [id])
+  /// Knowledge record ID of the source document
+  source_id        String
+  source_version   String
+  created_at       DateTime  @default(now())
+
+  @@index([rule_record_id])
+  @@map("rule_source_links")
+}
+
+/// Declares that two rules are incompatible and must not appear together in a release.
+/// The conflict-detector service reads this table.
+model RuleConflict {
+  id              String    @id @default(cuid())
+  rule_id_a       String
+  rule_id_b       String
+  /// Why these rules conflict — documented for governance
+  reason          String    @db.Text
+  /// Who declared this conflict
+  declared_by     String
+  created_at      DateTime  @default(now())
+
+  @@unique([rule_id_a, rule_id_b])
+  @@map("rule_conflicts")
+}
+
+/// Records ordered dependency between rules.
+model RuleDependency {
+  id                    String    @id @default(cuid())
+  /// The rule that has a dependency
+  dependent_rule_id     String
+  /// The rule that must be applied before the dependent rule
+  prerequisite_rule_id  String
+  /// Ordering sequence (lower = applied first)
+  sequence_order        Int       @default(0)
+  created_at            DateTime  @default(now())
+
+  @@unique([dependent_rule_id, prerequisite_rule_id])
+  @@map("rule_dependencies")
+}
+
+/// Tracks which rules belong to which KnowledgeRelease.
+/// A rule must be a member of the target release before the release is sealed.
+model RuleReleaseMembership {
+  id                        String    @id @default(cuid())
+  rule_record_id            String
+  ruleRecord                RuleRecord @relation(fields: [rule_record_id], references: [id])
+  /// The knowledge release version this membership is for
+  knowledge_release_version String
+  /// When this rule was added to the release
+  added_at                  DateTime  @default(now())
+  added_by                  String
+
+  @@unique([rule_record_id, knowledge_release_version])
+  @@index([knowledge_release_version])
+  @@map("rule_release_memberships")
+}
+
+/// Stores validation run results for a rule.
+/// Used by the RuleValidatorService to log every validation pass/fail.
+model RuleValidationResult {
+  id                String    @id @default(cuid())
+  rule_record_id    String
+  ruleRecord        RuleRecord @relation(fields: [rule_record_id], references: [id])
+  /// PASS | FAIL
+  validation_status String
+  error_count       Int       @default(0)
+  warning_count     Int       @default(0)
+  /// JSON array of RuleValidationError objects
+  errors_json       Json      @default("[]")
+  validated_by      String
+  validated_at      DateTime  @default(now())
+  /// The schema version the validation was run against
+  schema_version    String
+
+  @@index([rule_record_id])
+  @@map("rule_validation_results")
+}
+
+/// Stores test cases for rules (synthetic fixtures).
+/// All test cases are TEST_ONLY and excluded from production rule processing.
+model RuleTestCase {
+  id              String    @id @default(cuid())
+  rule_record_id  String
+  ruleRecord      RuleRecord @relation(fields: [rule_record_id], references: [id])
+  test_case_id    String    @unique
+  /// Short description of the test scenario
+  description     String
+  /// Whether this case expects the rule to match
+  expected_match  Boolean
+  /// The input facts JSON (CanonicalMirathFacts or CanonicalZakatFacts)
+  input_facts_json Json
+  /// Expected decision outcomes JSON
+  expected_decisions_json Json
+  is_test_fixture Boolean   @default(true)
+  created_at      DateTime  @default(now())
+
+  @@index([rule_record_id])
+  @@map("rule_test_cases")
+}
+
+/// Immutable audit log of every rule execution during a calculation.
+/// Written once per calculation, never modified.
+model RuleExecutionAudit {
+  id                        String    @id @default(cuid())
+  /// The calculation that triggered this audit
+  calculation_id            String
+  /// The module: MIRATH | ZAKAT
+  module                    String
+  /// Madhhab used for this calculation
+  madhhab                   String
+  /// Knowledge release version used
+  knowledge_release_version String
+  /// Semantic version of the rule engine
+  rule_engine_version       String
+  /// Full RuleExecutionTrace JSON
+  execution_trace_json      Json
+  /// IDs of applied rules (denormalized for fast lookup)
+  applied_rule_ids_json     Json      @default("[]")
+  /// Whether any conflict was detected during resolution
+  conflict_detected         Boolean   @default(false)
+  /// Conflict details if any
+  conflict_details_json     Json      @default("[]")
+  executed_at               DateTime  @default(now())
+  rule_record_id            String?
+  ruleRecord                RuleRecord? @relation(fields: [rule_record_id], references: [id])
+
+  @@index([calculation_id])
+  @@index([module, madhhab])
+  @@index([knowledge_release_version])
+  @@map("rule_execution_audits")
+}
+
+/// Logs every rule import operation.
+/// Provides full audit trail of who imported what and when.
+model RuleImportLog {
+  id                String    @id @default(cuid())
+  /// Operation ID (UUID)
+  operation_id      String    @unique
+  imported_by       String
+  import_source     String
+  rule_count        Int       @default(0)
+  success_count     Int       @default(0)
+  failure_count     Int       @default(0)
+  /// JSON array of import results
+  results_json      Json      @default("[]")
+  /// JSON array of error details
+  errors_json       Json      @default("[]")
+  imported_at       DateTime  @default(now())
+  /// Overall import status: COMPLETE | PARTIAL | FAILED
+  status            String    @default("COMPLETE")
+
+  @@map("rule_import_logs")
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// PHASE 4 — CANONICAL EVIDENCE STANDARD
+// ══════════════════════════════════════════════════════════════════════════════
+
+/// Permanent, immutable record for a single canonical evidence version (Qur'an, Hadith, Fiqh, Scholarly, etc.).
+model EvidenceRecord {
+  id                        String    @id @default(cuid())
+  /// Permanent evidence identifier — e.g. QURAN-004-011-011, HADITH-BUKHARI-001454
+  evidence_id               String
+  /// Semantic version of this evidence record, e.g. "1.0.0"
+  version                   String
+  /// MIZAN schema version
+  schema_version            String    @default("1.0.0")
+  /// Evidence type from EvidenceType enum
+  evidence_type             String
+  /// Primary module scope: MIRATH | ZAKAT | SHARED
+  module_scope_json         Json
+  /// JSON array of topics
+  topics_json               Json      @default("[]")
+  /// JSON array of subtopics
+  subtopics_json            Json      @default("[]")
+  /// Full canonical reference text, e.g. "Surah An-Nisa (4:11)"
+  canonical_reference       String
+  /// Short reference text, e.g. "Quran 4:11"
+  short_reference           String
+  /// Madhhab scope JSON (mode, appliesTo, excludedMadhhabs)
+  madhhab_scope_json        Json
+  /// Specific content payload JSON based on evidence type
+  content_json              Json
+  /// Per-language translations JSON
+  translations_json         Json      @default("{}")
+  /// Formatted citations JSON (short, full, academic, pdf)
+  citation_json             Json
+  /// Source provenance JSON
+  source_provenance_json    Json
+  /// Relationships JSON (ruleIds, explanationIds, relatedEvidenceIds)
+  relationships_json        Json      @default("{}")
+  /// Licensing JSON
+  licensing_json            Json
+  /// Governance status and review metadata JSON
+  governance_json           Json
+  /// SHA-256 checksum of content
+  content_checksum          String    @db.VarChar(64)
+  /// SHA-256 checksum of source
+  source_checksum           String    @db.VarChar(64)
+  /// Governance lifecycle status: DRAFT | APPROVED | PRODUCTION | etc.
+  status                    String    @default("DRAFT")
+  /// Whether this is a synthetic test fixture — cannot be PRODUCTION
+  is_test_fixture           Boolean   @default(false)
+  /// Test fixture tag
+  fixture_tag               String?
+  created_by                String
+  created_at                DateTime  @default(now())
+  updated_by                String
+  updated_at                DateTime  @updatedAt
+  effective_from            DateTime?
+  effective_until           DateTime?
+
+  versions                  EvidenceVersion[]
+  quranMetadata             QuranEvidenceMetadata?
+  hadithMetadata            HadithEvidenceMetadata?
+  fiqhMetadata              FiqhReferenceMetadata?
+  scholarlyMetadata         ScholarlyReferenceMetadata?
+  institutionalMetadata     InstitutionalDecisionMetadata?
+  explanatoryNote           ExplanatoryNoteRecord?
+  structuredRuleLinks       StructuredRuleEvidenceLink[]
+  reviews                   EvidenceReview[]
+  releaseMemberships        EvidenceReleaseMembership[]
+  validationResults         EvidenceValidationResult[]
+
+  @@unique([evidence_id, version])
+  @@index([evidence_id])
+  @@index([evidence_type, status])
+  @@map("evidence_records")
+}
+
+/// Version lineage and changelog for evidence records.
+model EvidenceVersion {
+  id                  String    @id @default(cuid())
+  evidence_record_id  String
+  evidenceRecord      EvidenceRecord @relation(fields: [evidence_record_id], references: [id])
+  version             String
+  supersedes_version  String?
+  change_type         String    // "PATCH" | "MINOR" | "MAJOR"
+  change_reason       String    @db.Text
+  created_by          String
+  created_at          DateTime  @default(now())
+
+  @@unique([evidence_record_id, version])
+  @@map("evidence_versions")
+}
+
+/// Metadata specific to Qur'an evidence records.
+model QuranEvidenceMetadata {
+  id                  String    @id @default(cuid())
+  evidence_record_id  String    @unique
+  evidenceRecord      EvidenceRecord @relation(fields: [evidence_record_id], references: [id])
+  surah_number        Int
+  surah_name_arabic   String
+  surah_name_en       String
+  surah_name_ha       String
+  ayah_start          Int
+  ayah_end            Int
+  arabic_text         String    @db.Text
+  uthmani_text        String    @db.Text
+  plain_arabic_text   String    @db.Text
+  search_normalised_text String? @db.Text
+  verse_sequence_verified Boolean @default(true)
+
+  translations        QuranTranslation[]
+
+  @@map("quran_evidence_metadata")
+}
+
+/// Governed per-language Qur'an translations.
+model QuranTranslation {
+  id                    String    @id @default(cuid())
+  quran_metadata_id     String
+  quranMetadata         QuranEvidenceMetadata @relation(fields: [quran_metadata_id], references: [id])
+  language_tag          String    @db.VarChar(10)
+  locale                String    @db.VarChar(20)
+  text                  String    @db.Text
+  translation_source_id String
+  translator            String
+  publisher             String?
+  edition               String?
+  publication_year      String?
+  licence_status        String
+  attribution_text      String?
+  review_status         String    @default("DRAFT")
+  checksum              String    @db.VarChar(64)
+  is_application_default Boolean  @default(false)
+  created_at            DateTime  @default(now())
+
+  @@map("quran_translations")
+}
+
+/// Metadata specific to Hadith evidence records.
+model HadithEvidenceMetadata {
+  id                      String    @id @default(cuid())
+  evidence_record_id      String    @unique
+  evidenceRecord          EvidenceRecord @relation(fields: [evidence_record_id], references: [id])
+  collection_id           String
+  collection_name_en      String
+  collection_name_ha      String
+  collection_name_ar      String
+  canonical_hadith_number String
+  arabic_text             String    @db.Text
+  matn_text               String    @db.Text
+  chain_of_narration      String?   @db.Text
+  narrator                String?
+  primary_grade           String
+  primary_grader          String
+  primary_grading_source_id String
+  display_policy          String    @default("SHOW_APPROVED_PRIMARY")
+
+  editionNumbers          HadithEditionNumber[]
+  gradingRecords          HadithGradingRecord[]
+
+  @@map("hadith_evidence_metadata")
+}
+
+/// Edition-specific numbering records for Hadith.
+model HadithEditionNumber {
+  id                    String    @id @default(cuid())
+  hadith_metadata_id    String
+  hadithMetadata        HadithEvidenceMetadata @relation(fields: [hadith_metadata_id], references: [id])
+  source_edition_id     String
+  edition_name          String
+  number                String
+  volume                String?
+  book                  String?
+  chapter               String?
+  page                  String?
+  publisher             String?
+  publication_year      String?
+
+  @@map("hadith_edition_numbers")
+}
+
+/// Attributed scholar grading records for Hadith.
+model HadithGradingRecord {
+  id                    String    @id @default(cuid())
+  hadith_metadata_id    String
+  hadithMetadata        HadithEvidenceMetadata @relation(fields: [hadith_metadata_id], references: [id])
+  grade                 String
+  grading_system        String?
+  grader                String
+  grading_source_id     String
+  source_edition        String?
+  notes                 String?   @db.Text
+  review_status         String    @default("APPROVED")
+
+  @@map("hadith_grading_records")
+}
+
+/// Metadata specific to classical Fiqh book references.
+model FiqhReferenceMetadata {
+  id                      String    @id @default(cuid())
+  evidence_record_id      String    @unique
+  evidenceRecord          EvidenceRecord @relation(fields: [evidence_record_id], references: [id])
+  source_id               String
+  book_title_original     String
+  book_title_en           String
+  author                  String
+  author_death_year_hijri String?
+  editor                  String?
+  publisher               String?
+  edition                 String?
+  volume                  String?
+  chapter                 String?
+  page_start              Int?
+  page_end                Int?
+  original_text           String    @db.Text
+  original_language       String    @default("ar")
+  verified_transcription  Boolean   @default(false)
+
+  @@map("fiqh_reference_metadata")
+}
+
+/// Metadata for contemporary scholarly references and legal maxims.
+model ScholarlyReferenceMetadata {
+  id                      String    @id @default(cuid())
+  evidence_record_id      String    @unique
+  evidenceRecord          EvidenceRecord @relation(fields: [evidence_record_id], references: [id])
+  title                   String
+  authors_json            Json      @default("[]")
+  institution             String?
+  document_type           String
+  publisher               String?
+  publication_year        String?
+  edition                 String?
+  standard_number         String?
+  document_url            String?
+  original_text           String    @db.Text
+  approved_excerpt        String?   @db.Text
+  approved_summary        String?   @db.Text
+
+  @@map("scholarly_reference_metadata")
+}
+
+/// Formal Sharia board decision metadata.
+model InstitutionalDecisionMetadata {
+  id                      String    @id @default(cuid())
+  evidence_record_id      String    @unique
+  evidenceRecord          EvidenceRecord @relation(fields: [evidence_record_id], references: [id])
+  institution_id          String
+  institution_official_name String
+  country_code            String?
+  decision_number         String
+  title                   String
+  date_issued             String?
+  original_language       String
+  original_text           String    @db.Text
+  signatories_json        Json      @default("[]")
+
+  @@map("institutional_decision_metadata")
+}
+
+/// Explanatory notes approved by MIZAN Sharia editorial.
+model ExplanatoryNoteRecord {
+  id                      String    @id @default(cuid())
+  evidence_record_id      String    @unique
+  evidenceRecord          EvidenceRecord @relation(fields: [evidence_record_id], references: [id])
+  title_en                String
+  title_ha                String
+  title_ar                String
+  content_en              String    @db.Text
+  content_ha              String    @db.Text
+  content_ar              String    @db.Text
+  supports_evidence_ids   Json      @default("[]")
+  supports_rule_ids       Json      @default("[]")
+  author_type             String    @default("MIZAN_EDITORIAL")
+
+  @@map("explanatory_note_records")
+}
+
+/// Explicit typed relationships between evidence records.
+model EvidenceRelationshipRecord {
+  id                      String    @id @default(cuid())
+  relationship_id         String    @unique
+  source_evidence_id      String
+  source_evidence_version String
+  relationship_type       String
+  target_type             String    // "RULE" | "EVIDENCE" | "EXPLANATION"
+  target_id               String
+  target_version          String
+  madhhab_scope_json      Json      @default("[]")
+  review_status           String    @default("DRAFT")
+  notes                   String?   @db.Text
+  created_at              DateTime  @default(now())
+
+  @@index([source_evidence_id])
+  @@index([target_id])
+  @@map("evidence_relationship_records")
+}
+
+/// Structured junction linking rules to evidence with explicit support category and display controls.
+model StructuredRuleEvidenceLink {
+  id                      String    @id @default(cuid())
+  link_id                 String    @unique
+  rule_id                 String
+  rule_version            String
+  evidence_record_id      String
+  evidenceRecord          EvidenceRecord @relation(fields: [evidence_record_id], references: [id])
+  evidence_id             String
+  evidence_version        String
+  relationship_type       String    // PRIMARY_EVIDENCE | SECONDARY_EVIDENCE | etc.
+  supports_category       String    // APPLICABILITY | DECISION | RATE | FRACTION | BLOCKING | etc.
+  madhhab_scope_json      Json
+  show_in_result          Boolean   @default(true)
+  show_in_pdf             Boolean   @default(true)
+  show_in_ai_context      Boolean   @default(true)
+  display_priority        Int       @default(1)
+  status                  String    @default("DRAFT")
+  created_at              DateTime  @default(now())
+
+  @@index([rule_id, rule_version])
+  @@index([evidence_id, evidence_version])
+  @@map("structured_rule_evidence_links")
+}
+
+/// Generic per-language translations for non-Quran evidence.
+model EvidenceTranslation {
+  id                      String    @id @default(cuid())
+  evidence_id             String
+  evidence_version        String
+  language_tag            String    @db.VarChar(10)
+  locale                  String    @db.VarChar(20)
+  direction               String    @default("LTR")
+  content_type            String    // APPROVED_TRANSLATION | APPROVED_SUMMARY | etc.
+  text                    String    @db.Text
+  source_id               String?
+  review_status           String    @default("DRAFT")
+  checksum                String    @db.VarChar(64)
+  created_at              DateTime  @default(now())
+
+  @@unique([evidence_id, evidence_version, language_tag, content_type])
+  @@map("evidence_translations")
+}
+
+/// Source document registry.
+model EvidenceSource {
+  id                      String    @id @default(cuid())
+  source_id               String    @unique
+  title                   String
+  author                  String?
+  publisher               String?
+  publication_year        String?
+  original_language       String
+  licence_status          String
+  file_url                String?
+  file_checksum           String?
+  created_at              DateTime  @default(now())
+
+  @@map("evidence_sources")
+}
+
+/// Licensing records.
+model EvidenceLicence {
+  id                      String    @id @default(cuid())
+  licence_status          String
+  licence_name            String?
+  licence_url             String?
+  rights_holder           String?
+  attribution_required    Boolean   @default(true)
+  attribution_text        String?
+  commercial_use_allowed  Boolean   @default(false)
+  created_at              DateTime  @default(now())
+
+  @@map("evidence_licences")
+}
+
+/// Governance review record for evidence.
+model EvidenceReview {
+  id                      String    @id @default(cuid())
+  evidence_record_id      String
+  evidenceRecord          EvidenceRecord @relation(fields: [evidence_record_id], references: [id])
+  review_type             String    // ACADEMIC | SHARIA | TECHNICAL
+  reviewer_id             String
+  outcome                 String    // APPROVED | REJECTED | CHANGES_REQUESTED
+  comments                String?   @db.Text
+  reviewed_at             DateTime  @default(now())
+
+  @@index([evidence_record_id])
+  @@map("evidence_reviews")
+}
+
+/// Knowledge release membership for evidence records.
+model EvidenceReleaseMembership {
+  id                        String    @id @default(cuid())
+  evidence_record_id        String
+  evidenceRecord            EvidenceRecord @relation(fields: [evidence_record_id], references: [id])
+  knowledge_release_version String
+  added_at                  DateTime  @default(now())
+  added_by                  String
+
+  @@unique([evidence_record_id, knowledge_release_version])
+  @@map("evidence_release_memberships")
+}
+
+/// Stores validation run results for evidence.
+model EvidenceValidationResult {
+  id                      String    @id @default(cuid())
+  evidence_record_id      String
+  evidenceRecord          EvidenceRecord @relation(fields: [evidence_record_id], references: [id])
+  validation_status       String    // PASS | FAIL
+  error_count             Int       @default(0)
+  warning_count           Int       @default(0)
+  errors_json             Json      @default("[]")
+  validated_by            String
+  validated_at            DateTime  @default(now())
+
+  @@index([evidence_record_id])
+  @@map("evidence_validation_results")
+}
+
+/// Immutable audit log of evidence lifecycle events.
+model EvidenceAuditEvent {
+  id                      String    @id @default(cuid())
+  evidence_id             String
+  evidence_version        String
+  action                  String    // CREATE | UPDATE | REVIEW | APPROVE | PUBLISH | DEPRECATE
+  actor_id                String
+  details_json            Json      @default("{}")
+  performed_at            DateTime  @default(now())
+
+  @@index([evidence_id])
+  @@map("evidence_audit_events")
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// PHASE 5 — MADHHAB-SPECIFIC RULE RESOLUTION SYSTEM
+// ══════════════════════════════════════════════════════════════════════════════
+
+/// Registers which rule serves as the branch for a given madhhab set within a rule family.
+model MadhhabRuleBranch {
+  id                        String    @id @default(cuid())
+  branch_id                 String    @unique
+  rule_family_id            String
+  applicable_madhhabs_json  Json
+  /// SHARED_BASE | PARTIAL_AGREEMENT | NARROW_OVERRIDE | FULL_BRANCH
+  branch_strategy           String
+  branch_rule_id            String
+  branch_rule_version       String    @default("1.0.0")
+  notes                     String?   @db.Text
+  created_at                DateTime  @default(now())
+
+  @@index([rule_family_id])
+  @@map("madhhab_rule_branches")
+}
+
+/// Immutable per-calculation audit log of madhhab-specific rule resolution.
+model MadhhabResolutionAudit {
+  id                        String    @id @default(cuid())
+  calculation_id            String
+  madhhab                   String
+  profile_id                String?
+  rules_evaluated_count     Int       @default(0)
+  rules_after_filter_count  Int       @default(0)
+  branches_selected_json    Json      @default("[]")
+  resolution_trace_json     Json      @default("[]")
+  conflict_detected         Boolean   @default(false)
+  conflict_details_json     Json      @default("[]")
+  resolved_at               DateTime  @default(now())
+
+  @@index([calculation_id])
+  @@index([madhhab])
+  @@map("madhhab_resolution_audits")
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// PHASE 6 — INHERITANCE BLOCKING AND HIJAB RULE SYSTEM
+// ══════════════════════════════════════════════════════════════════════════════
+
+/// Canonical, versioned, scholar-reviewed Hijab blocking rule registry.
+/// Each record represents one specific heir-blocking scenario,
+/// with full evidence references and madhhab scope.
+model HijabRule {
+  id                      String    @id @default(cuid())
+  /// Permanent immutable ID — format: HIJAB-<BLOCKED_HEIR>-<BLOCKING_CAUSE>-NNN
+  hijab_rule_id           String    @unique
+  hijab_rule_version      String    @default("1.0.0")
+  title_en                String
+  title_ar                String?
+  description_en          String    @db.Text
+  /// HAJB_BIL_WASF | HAJB_BIL_SHAKHSY
+  category                String
+  /// Heir key being blocked (e.g. "fullBrothers", "paternalGrandfathers")
+  blocked_heir_key        String
+  /// The heir or attribute causing the blocking (e.g. "sons", "ATTRIBUTE")
+  blocking_cause          String
+  /// HIRMAN | NUQSAN
+  effect_type             String
+  /// JSON: { numerator, denominator } — only for NUQSAN
+  reduced_fraction_json   Json?
+  /// JSON array of RuleMadhhabScope values
+  madhhab_scope_json      Json
+  /// JSON array of HijabEvidenceRef
+  evidence_refs_json      Json      @default("[]")
+  /// JSON array of HijabExplanationRef
+  explanation_refs_json   Json      @default("[]")
+  /// DRAFT | ACADEMIC_REVIEW | ... | PRODUCTION | DEPRECATED
+  governance_status       String    @default("DRAFT")
+  is_test_fixture         Boolean   @default(false)
+  fixture_tag             String?
+  schema_version          String    @default("6.0.0")
+  created_by              String
+  updated_by              String
+  review_notes            String?   @db.Text
+  requires_scholar_countersign Boolean @default(false)
+  content_checksum        String    @db.VarChar(64)
+  supersedes              String?
+  effective_from          DateTime?
+  effective_until         DateTime?
+  changelog_note          String?
+  created_at              DateTime  @default(now())
+  updated_at              DateTime  @updatedAt
+
+  auditRuleLinks          HijabResolutionAuditRuleLink[]
+
+  @@index([blocked_heir_key])
+  @@index([blocking_cause])
+  @@index([governance_status])
+  @@map("hijab_rules")
+}
+
+/// Immutable per-calculation audit log of hijab resolution decisions.
+/// Written once per calculation — never updated after creation.
+model HijabResolutionAudit {
+  id                        String    @id @default(cuid())
+  calculation_id            String
+  madhhab                   String
+  profile_id                String?
+  /// JSON: Record<string, number> — present heirs and their counts
+  present_heirs_json        Json      @default("{}")
+  rules_evaluated_count     Int       @default(0)
+  rules_applied_count       Int       @default(0)
+  /// JSON array of HeirHijabStatus
+  heir_statuses_json        Json      @default("[]")
+  /// JSON array of HijabResolutionTrace
+  resolution_trace_json     Json      @default("[]")
+  has_partial_resolution    Boolean   @default(false)
+  resolved_at               DateTime  @default(now())
+
+  ruleLinks                 HijabResolutionAuditRuleLink[]
+
+  @@index([calculation_id])
+  @@index([madhhab])
+  @@map("hijab_resolution_audits")
+}
+
+/// Junction: links a HijabResolutionAudit to the specific HijabRule records applied.
+model HijabResolutionAuditRuleLink {
+  id                        String               @id @default(cuid())
+  audit_id                  String
+  audit                     HijabResolutionAudit @relation(fields: [audit_id], references: [id])
+  hijab_rule_db_id          String
+  hijabRule                 HijabRule            @relation(fields: [hijab_rule_db_id], references: [id])
+  was_applied               Boolean
+  blocked_heir_key          String
+  effect_type               String
+  linked_at                 DateTime             @default(now())
+
+  @@unique([audit_id, hijab_rule_db_id])
+  @@map("hijab_resolution_audit_rule_links")
 }

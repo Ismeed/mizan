@@ -1,4 +1,7 @@
 import { prisma } from '../../config/database';
+import { MadhhabCode, CalculationProfile } from '@mizan/shared';
+import { CalculationProfileResolverService } from '../profile/services/calculation-profile-resolver.service';
+import { CalculationProfileSnapshotService } from '../profile/services/calculation-profile-snapshot.service';
 
 const SILVER_NISAB_GRAMS = 595;
 const GOLD_NISAB_GRAMS = 85;
@@ -9,9 +12,15 @@ export interface ZakatCalculateInput {
   userId: string;
   assets: any;
   liabilities: number;
-  currency: string;
+  currency?: string;
+  madhhab?: string;
   hawlMet: boolean;
   nisabOverride?: number;
+  profileOverrides?: {
+    madhhab?: MadhhabCode;
+    currency?: string;
+    language?: string;
+  };
 }
 
 export class ZakatService {
@@ -27,10 +36,26 @@ export class ZakatService {
     return Math.min(goldNisabUSD, silverNisabUSD);
   }
 
-  async calculate(input: ZakatCalculateInput): Promise<{ calculationId: string; result: any }> {
-    const { userId, assets, liabilities, currency, hawlMet, nisabOverride } = input;
+  async calculate(input: ZakatCalculateInput): Promise<{ calculationId: string; result: any; profile: CalculationProfile }> {
+    const { userId, assets, liabilities, currency, madhhab, hawlMet, nisabOverride, profileOverrides } = input;
 
-    const nisabThreshold = nisabOverride ?? (await this.getNisabThreshold(currency));
+    // Resolve authoritative Calculation Profile
+    const requestedMadhhab = (profileOverrides?.madhhab || madhhab) as MadhhabCode | undefined;
+    const requestedCurrency = profileOverrides?.currency || currency;
+
+    const { profile } = await CalculationProfileResolverService.resolveProfile({
+      userId,
+      module: 'ZAKAT',
+      calculationOverrides: {
+        madhhab: requestedMadhhab,
+        currency: requestedCurrency,
+        language: profileOverrides?.language,
+      },
+    });
+
+    const resolvedCurrency = profile.preferences.currency.code;
+
+    const nisabThreshold = nisabOverride ?? (await this.getNisabThreshold(resolvedCurrency));
 
     const cashVal = assets?.cash || 0;
     const goldVal = assets?.goldValue || 0;
@@ -55,7 +80,7 @@ export class ZakatService {
       zakatRate: 0.025,
       zakatDue,
       zakatPayable: zakatDue,
-      currency,
+      currency: resolvedCurrency,
     };
 
     const calculationId = await prisma.$transaction(async (tx) => {
@@ -78,7 +103,7 @@ export class ZakatService {
           zakat_rate:      0.025,
           zakat_due:       zakatDue,
           zakat_type:      'ZAKAT_AL_MAL',
-          currency,
+          currency:        resolvedCurrency,
           hawl_start_date: null,
         },
       });
@@ -104,28 +129,37 @@ export class ZakatService {
         });
       }
 
+      // Freeze and attach profile snapshot
+      await CalculationProfileSnapshotService.createFrozenSnapshot(profile, calculation.id);
+
       return calculation.id;
     });
 
-    return { calculationId, result };
+    return { calculationId, result, profile };
   }
 
   async getHistory(userId: string) {
     return prisma.calculation.findMany({
       where: { user_id: userId, type: 'ZAKAT' },
-      include: { zakat: { include: { assets: true } } },
+      include: {
+        zakat: { include: { assets: true } },
+        profile_snapshot: true,
+      },
       orderBy: { created_at: 'desc' },
       take: 50,
     });
   }
 
   /**
-   * Get a single Zakat calculation by ID (enforces strict 403 Forbidden ownership check).
+   * Get a single Zakat calculation by ID.
    */
   async getById(id: string, userId: string) {
     const calc = await prisma.calculation.findUnique({
       where: { id },
-      include: { zakat: { include: { assets: true } } },
+      include: {
+        zakat: { include: { assets: true } },
+        profile_snapshot: true,
+      },
     });
 
     if (!calc) {

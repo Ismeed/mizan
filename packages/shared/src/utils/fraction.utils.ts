@@ -84,3 +84,38 @@ export function fractionToDecimal(fraction: string): number {
   if (!d) return 0;
   return new Decimal(n).dividedBy(d).toNumber();
 }
+
+/** Subtract fractions: a - b */
+export function subFrac(a: Frac, b: Frac): Frac {
+  const d = lcm(a.d, b.d);
+  const n = a.n * (d / a.d) - b.n * (d / b.d);
+  return reduceFrac({ n, d });
+}
+
+/** Multiply two fractions */
+export function mulFrac(a: Frac, b: Frac): Frac {
+  return reduceFrac({ n: a.n * b.n, d: a.d * b.d });
+}
+
+/** Divide fraction a by fraction b */
+export function divFrac(a: Frac, b: Frac): Frac {
+  if (b.n === 0) throw new Error('RULE_ARITHMETIC_ERROR: Division by zero fraction');
+  return reduceFrac({ n: a.n * b.d, d: a.d * b.n });
+}
+
+/** Convert a fraction to a display percentage string, e.g. "2.50%" */
+export function fracToPercent(f: Frac): string {
+  return new Decimal(f.n).dividedBy(f.d).mul(100).toFixed(2) + '%';
+}
+
+/** Compare two fractions for exact equality */
+export function rationalEquals(a: Frac, b: Frac): boolean {
+  const ra = reduceFrac(a);
+  const rb = reduceFrac(b);
+  return ra.n === rb.n && ra.d === rb.d;
+}
+
+/** Convert a fraction share of estate to a monetary amount using Decimal arithmetic */
+export function rationalToMonetaryAmount(share: Frac, estateTotal: number): Decimal {
+  return new Decimal(share.n).dividedBy(share.d).mul(new Decimal(estateTotal));
+}

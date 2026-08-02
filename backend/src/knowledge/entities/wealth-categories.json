@@ -1,0 +1,15 @@
+{
+  "schemaVersion": "1.0.0",
+  "entityType": "WEALTH_CATEGORY",
+  "entities": [
+    { "id": "CASH_SAVINGS", "requiresHawl": true, "nisabStandard": "GOLD_OR_SILVER" },
+    { "id": "GOLD_SILVER", "requiresHawl": true, "nisabStandard": "WEIGHT" },
+    { "id": "BUSINESS_INVENTORY", "requiresHawl": true, "nisabStandard": "COMMERCIAL_VALUE" },
+    { "id": "INVESTMENTS_STOCKS", "requiresHawl": true, "nisabStandard": "MARKET_VALUE" },
+    { "id": "AGRICULTURE", "requiresHawl": false, "nisabStandard": "FIVE_WASAQ" },
+    { "id": "LIVESTOCK_CAMELS", "requiresHawl": true, "nisabStandard": "HEAD_COUNT" },
+    { "id": "LIVESTOCK_CATTLE", "requiresHawl": true, "nisabStandard": "HEAD_COUNT" },
+    { "id": "LIVESTOCK_SHEEP_GOATS", "requiresHawl": true, "nisabStandard": "HEAD_COUNT" },
+    { "id": "MINERALS_TREASURE", "requiresHawl": false, "nisabStandard": "EXTRACTED_VALUATION" }
+  ]
+}

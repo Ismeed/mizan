@@ -1,0 +1,52 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "MirathReportSchema",
+  "type": "object",
+  "required": [
+    "calculationId",
+    "referenceNo",
+    "generatedAt",
+    "madhhabScope",
+    "netEstate",
+    "currency",
+    "heirShares",
+    "evidenceReferences"
+  ],
+  "properties": {
+    "calculationId": { "type": "string", "format": "uuid" },
+    "referenceNo": { "type": "string" },
+    "generatedAt": { "type": "string", "format": "date-time" },
+    "madhhabScope": { "type": "string", "enum": ["HANAFI", "MALIKI", "SHAFII", "HANBALI", "JAFARI"] },
+    "netEstate": { "type": "number", "minimum": 0 },
+    "currency": { "type": "string", "minLength": 3, "maxLength": 3 },
+    "heirShares": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["heirId", "count", "fractionNumerator", "fractionDenominator", "amount", "percentage"],
+        "properties": {
+          "heirId": { "type": "string" },
+          "count": { "type": "integer", "minimum": 1 },
+          "fractionNumerator": { "type": "integer", "minimum": 0 },
+          "fractionDenominator": { "type": "integer", "minimum": 1 },
+          "amount": { "type": "number", "minimum": 0 },
+          "percentage": { "type": "number", "minimum": 0, "maximum": 100 },
+          "isBlocked": { "type": "boolean" },
+          "blockingReason": { "type": ["string", "null"] }
+        }
+      }
+    },
+    "evidenceReferences": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["evidenceId", "citationKey", "sourceType"],
+        "properties": {
+          "evidenceId": { "type": "string" },
+          "citationKey": { "type": "string" },
+          "sourceType": { "type": "string", "enum": ["QURAN", "HADITH", "FIQH_BOOK"] }
+        }
+      }
+    }
+  }
+}

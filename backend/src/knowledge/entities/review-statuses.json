@@ -1,0 +1,17 @@
+{
+  "schemaVersion": "1.0.0",
+  "entityType": "REVIEW_STATUS",
+  "entities": [
+    { "id": "DRAFT", "isPublic": false, "isCalculable": false, "isExecutable": false },
+    { "id": "ACADEMIC_REVIEW", "isPublic": false, "isCalculable": false, "isExecutable": false },
+    { "id": "SHARIA_REVIEW", "isPublic": false, "isCalculable": false, "isExecutable": false },
+    { "id": "TECHNICAL_VALIDATION", "isPublic": false, "isCalculable": false, "isExecutable": false },
+    { "id": "APPROVED", "isPublic": false, "isCalculable": true, "isExecutable": false },
+    { "id": "INDEXED", "isPublic": false, "isCalculable": true, "isExecutable": true },
+    { "id": "PRODUCTION", "isPublic": true, "isCalculable": true, "isExecutable": true },
+    { "id": "CHANGES_REQUESTED", "isPublic": false, "isCalculable": false, "isExecutable": false },
+    { "id": "REJECTED", "isPublic": false, "isCalculable": false, "isExecutable": false },
+    { "id": "DEPRECATED", "isPublic": false, "isCalculable": false, "isExecutable": false },
+    { "id": "ARCHIVED", "isPublic": false, "isCalculable": false, "isExecutable": false }
+  ]
+}

@@ -12,6 +12,8 @@ import { spacing, borderRadius } from '../../src/constants/spacing';
 import { useInheritance } from '../../src/hooks/useInheritance';
 import { getCurrencySymbol } from '../../src/utils/currency.utils';
 
+import { CalculationProfileBanner } from '../../src/components/profile/CalculationProfileBanner';
+
 export default function InheritanceStep1() {
   const router = useRouter();
   const { totalEstate, debts, funeralExpenses, wasiyyah, setEstateField, currency } = useInheritance();
@@ -67,6 +69,8 @@ export default function InheritanceStep1() {
             totalSteps={4}
             labels={['Estate', 'Heirs', 'Summary', 'Results']}
           />
+
+          <CalculationProfileBanner moduleName="MIRATH" />
 
           <View style={styles.card}>
             <Text style={styles.cardTitle}>Estate Details</Text>

@@ -1,0 +1,11 @@
+{
+  "schemaVersion": "1.0.0",
+  "entityType": "MADHHAB",
+  "entities": [
+    { "id": "HANAFI", "tradition": "SUNNI", "founder": "Imam Abu Hanifa (d. 150 AH)" },
+    { "id": "MALIKI", "tradition": "SUNNI", "founder": "Imam Malik ibn Anas (d. 179 AH)" },
+    { "id": "SHAFII", "tradition": "SUNNI", "founder": "Imam Muhammad ibn Idris al-Shafi'i (d. 204 AH)" },
+    { "id": "HANBALI", "tradition": "SUNNI", "founder": "Imam Ahmad ibn Hanbal (d. 241 AH)" },
+    { "id": "JAFARI", "tradition": "SHIA", "founder": "Imam Ja'far al-Sadiq (d. 148 AH)" }
+  ]
+}

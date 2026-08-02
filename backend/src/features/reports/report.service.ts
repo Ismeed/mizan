@@ -1,4 +1,3 @@
-import puppeteer from 'puppeteer';
 import fs from 'fs';
 import path from 'path';
 
@@ -380,6 +379,7 @@ export class ReportService {
   }
 
   private async generatePdfFromHtml(html: string): Promise<Buffer> {
+    const puppeteer = (await import('puppeteer')).default;
     const browser = await puppeteer.launch({
       headless: true,
       args: ['--no-sandbox', '--disable-setuid-sandbox']

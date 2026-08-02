@@ -17,6 +17,8 @@ const WEALTH_TYPES = [
   { id: 'crypto', label: 'Crypto', icon: 'logo-bitcoin', iconColor: '#F59E0B', disabled: true, subtitle: 'Coming Soon' },
 ];
 
+import { CalculationProfileBanner } from '../../src/components/profile/CalculationProfileBanner';
+
 export default function ZakatIndexScreen() {
   const router = useRouter();
   const [selectedTypes, setSelectedTypes] = useState<string[]>([]);
@@ -40,6 +42,7 @@ export default function ZakatIndexScreen() {
     <SafeScreen edges={['top', 'bottom', 'left', 'right']}>
       <Header title="Zakat Calculator" />
       <ScrollView contentContainerStyle={styles.container} showsVerticalScrollIndicator={false}>
+        <CalculationProfileBanner moduleName="ZAKAT" />
         <View style={styles.header}>
           <Text style={styles.stepText}>Step 1 of 3</Text>
           <Text style={styles.title}>Select Wealth Types</Text>

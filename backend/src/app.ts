@@ -11,7 +11,11 @@ import { reportRouter }       from './features/reports/report.routes';
 import { notificationRouter } from './features/notifications/notification.routes';
 import { supportRouter }      from './features/support/support.routes';
 import { adminRouter }        from './features/admin/admin.routes';
-import { knowledgeAdminRouter } from './features/admin/knowledge/knowledge.routes';
+import { knowledgeAdminRouter } from './features/knowledge/knowledge-admin.routes';
+import { profileRouter }        from './features/profile/profile.routes';
+import { rulesAdminRouter }     from './features/rules/rules.routes';
+import { evidenceRouter, adminEvidenceRouter } from './features/evidence/evidence.routes';
+import hijabRouter from './features/hijab/hijab.routes';
 import { apiLimiter }        from './shared/middleware/rate-limit.middleware';
 import { sendError }         from './shared/utils/response.utils';
 
@@ -32,6 +36,7 @@ app.get('/health', (_req, res) => {
 });
 
 // ── Feature Routes ────────────────────────────────────────────────────────────
+app.use('/api',               profileRouter);
 app.use('/api/auth',          authRouter);
 app.use('/api/inheritance',   inheritanceRouter);
 app.use('/api/zakat',         zakatRouter);
@@ -39,8 +44,12 @@ app.use('/api/ai',            aiRouter);
 app.use('/api/reports',       reportRouter);
 app.use('/api/notifications', notificationRouter);
 app.use('/api/support',       supportRouter);
+app.use('/api/evidence',      evidenceRouter);
+app.use('/api/admin/evidence', adminEvidenceRouter);
 app.use('/api/admin/knowledge', knowledgeAdminRouter);
+app.use('/api/admin/rules',     rulesAdminRouter);
 app.use('/api/admin',         adminRouter);
+app.use('/api/hijab',         hijabRouter);
 
 // ── 404 Handler ───────────────────────────────────────────────────────────────
 app.use((_req, res) => {

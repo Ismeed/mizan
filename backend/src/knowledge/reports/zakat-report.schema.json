@@ -1,0 +1,45 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "ZakatReportSchema",
+  "type": "object",
+  "required": [
+    "calculationId",
+    "referenceNo",
+    "generatedAt",
+    "madhhabScope",
+    "totalWealth",
+    "totalDebts",
+    "netWealth",
+    "nisabThreshold",
+    "isNisabMet",
+    "zakatDue",
+    "currency",
+    "assets"
+  ],
+  "properties": {
+    "calculationId": { "type": "string", "format": "uuid" },
+    "referenceNo": { "type": "string" },
+    "generatedAt": { "type": "string", "format": "date-time" },
+    "madhhabScope": { "type": "string", "enum": ["HANAFI", "MALIKI", "SHAFII", "HANBALI", "JAFARI"] },
+    "totalWealth": { "type": "number", "minimum": 0 },
+    "totalDebts": { "type": "number", "minimum": 0 },
+    "netWealth": { "type": "number" },
+    "nisabThreshold": { "type": "number", "minimum": 0 },
+    "isNisabMet": { "type": "boolean" },
+    "zakatDue": { "type": "number", "minimum": 0 },
+    "currency": { "type": "string", "minLength": 3, "maxLength": 3 },
+    "assets": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["assetCategory", "grossValue", "netSubjectValue", "zakatRate"],
+        "properties": {
+          "assetCategory": { "type": "string" },
+          "grossValue": { "type": "number", "minimum": 0 },
+          "netSubjectValue": { "type": "number", "minimum": 0 },
+          "zakatRate": { "type": "number", "minimum": 0 }
+        }
+      }
+    }
+  }
+}

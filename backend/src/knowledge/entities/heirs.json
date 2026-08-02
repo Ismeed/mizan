@@ -1,0 +1,24 @@
+{
+  "schemaVersion": "1.0.0",
+  "entityType": "HEIR_TYPE",
+  "entities": [
+    { "id": "HUSBAND", "category": "SPOUSE", "gender": "MALE", "hasFixedShare": true },
+    { "id": "WIFE", "category": "SPOUSE", "gender": "FEMALE", "hasFixedShare": true },
+    { "id": "SON", "category": "CHILD", "gender": "MALE", "hasFixedShare": false },
+    { "id": "DAUGHTER", "category": "CHILD", "gender": "FEMALE", "hasFixedShare": true },
+    { "id": "FATHER", "category": "PARENT", "gender": "MALE", "hasFixedShare": true },
+    { "id": "MOTHER", "category": "PARENT", "gender": "FEMALE", "hasFixedShare": true },
+    { "id": "PATERNAL_GRANDFATHER", "category": "GRANDPARENT", "gender": "MALE", "hasFixedShare": true },
+    { "id": "PATERNAL_GRANDMOTHER", "category": "GRANDPARENT", "gender": "FEMALE", "hasFixedShare": true },
+    { "id": "MATERNAL_GRANDMOTHER", "category": "GRANDPARENT", "gender": "FEMALE", "hasFixedShare": true },
+    { "id": "FULL_BROTHER", "category": "SIBLING", "gender": "MALE", "hasFixedShare": false },
+    { "id": "FULL_SISTER", "category": "SIBLING", "gender": "FEMALE", "hasFixedShare": true },
+    { "id": "PATERNAL_HALF_BROTHER", "category": "SIBLING", "gender": "MALE", "hasFixedShare": false },
+    { "id": "PATERNAL_HALF_SISTER", "category": "SIBLING", "gender": "FEMALE", "hasFixedShare": true },
+    { "id": "MATERNAL_HALF_SIBLING", "category": "SIBLING", "gender": "BOTH", "hasFixedShare": true },
+    { "id": "SON_OF_FULL_BROTHER", "category": "EXTENDED", "gender": "MALE", "hasFixedShare": false },
+    { "id": "SON_OF_PATERNAL_HALF_BROTHER", "category": "EXTENDED", "gender": "MALE", "hasFixedShare": false },
+    { "id": "PATERNAL_UNCLE", "category": "EXTENDED", "gender": "MALE", "hasFixedShare": false },
+    { "id": "SON_OF_PATERNAL_UNCLE", "category": "EXTENDED", "gender": "MALE", "hasFixedShare": false }
+  ]
+}

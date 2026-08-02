@@ -1,0 +1,102 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://mizan.app/schemas/v1/canonical-evidence.schema.json",
+  "title": "MIZAN Canonical Evidence Standard Schema",
+  "type": "object",
+  "required": [
+    "evidenceId",
+    "version",
+    "schemaVersion",
+    "evidenceType",
+    "identity",
+    "madhhabScope",
+    "content",
+    "translations",
+    "citation",
+    "sourceProvenance",
+    "relationships",
+    "licensing",
+    "governance",
+    "integrity"
+  ],
+  "properties": {
+    "evidenceId": {
+      "type": "string",
+      "pattern": "^(QURAN|HADITH|FIQH|SCHOLARLY|LEGAL_MAXIM|INSTITUTIONAL|EXPLANATORY)-[A-Z0-9]+(-[A-Z0-9]+)*$"
+    },
+    "version": {
+      "type": "string"
+    },
+    "schemaVersion": {
+      "type": "string",
+      "default": "1.0.0"
+    },
+    "evidenceType": {
+      "type": "string",
+      "enum": [
+        "QURAN",
+        "HADITH",
+        "FIQH_REFERENCE",
+        "SCHOLARLY_REFERENCE",
+        "LEGAL_MAXIM",
+        "INSTITUTIONAL_SHARIA_DECISION",
+        "APPROVED_EXPLANATORY_NOTE"
+      ]
+    },
+    "identity": {
+      "type": "object",
+      "required": ["moduleScope", "topics", "subtopics", "canonicalReference", "shortReference"],
+      "properties": {
+        "moduleScope": {
+          "type": "array",
+          "items": { "type": "string", "enum": ["MIRATH", "ZAKAT", "SHARED"] }
+        },
+        "topics": { "type": "array", "items": { "type": "string" } },
+        "subtopics": { "type": "array", "items": { "type": "string" } },
+        "canonicalReference": { "type": "string" },
+        "shortReference": { "type": "string" }
+      }
+    },
+    "madhhabScope": {
+      "type": "object",
+      "required": ["mode", "appliesTo"],
+      "properties": {
+        "mode": { "type": "string", "enum": ["SHARED", "SINGLE_MADHHAB", "SELECTIVE", "COMPARATIVE"] },
+        "appliesTo": {
+          "type": "array",
+          "items": { "type": "string", "enum": ["HANAFI", "MALIKI", "SHAFII", "HANBALI", "JAFARI"] }
+        }
+      }
+    },
+    "content": { "type": "object" },
+    "translations": { "type": "object" },
+    "citation": {
+      "type": "object",
+      "required": ["short", "full"],
+      "properties": {
+        "short": { "type": "string" },
+        "full": { "type": "string" }
+      }
+    },
+    "sourceProvenance": {
+      "type": "object",
+      "required": ["sourceType", "sourceId", "title", "originalLanguage", "extractionMethod", "verifiedAgainstSource"]
+    },
+    "relationships": {
+      "type": "object",
+      "required": ["ruleIds", "explanationIds", "relatedEvidenceIds"]
+    },
+    "licensing": {
+      "type": "object",
+      "required": ["licenceStatus", "attributionRequired", "commercialUseAllowed", "modificationAllowed", "redistributionAllowed"]
+    },
+    "governance": {
+      "type": "object",
+      "required": ["status", "reviewMetadata"]
+    },
+    "integrity": {
+      "type": "object",
+      "required": ["contentChecksum", "sourceChecksum", "createdAt", "createdBy", "updatedAt", "updatedBy"]
+    }
+  }
+}

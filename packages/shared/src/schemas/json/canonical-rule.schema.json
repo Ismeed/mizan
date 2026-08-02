@@ -1,0 +1,181 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://mizan.app/schemas/canonical-rule/v1.0.0",
+  "title": "MIZAN Canonical Rule Schema",
+  "description": "Schema for all MIZAN Mirath and Zakat structured rule records. Scholar-approved rules only.",
+  "type": "object",
+  "required": ["identity", "titles", "scope", "applicability", "decisions", "evidenceRefs", "explanationRefs", "governance", "versioning"],
+  "additionalProperties": false,
+  "definitions": {
+    "Frac": {
+      "type": "object",
+      "required": ["n", "d"],
+      "additionalProperties": false,
+      "properties": {
+        "n": { "type": "integer" },
+        "d": { "type": "integer", "minimum": 1 }
+      }
+    },
+    "RuleId": {
+      "type": "string",
+      "pattern": "^(MIRATH|ZAKAT|SHARED|SYS)-([A-Z][A-Z0-9_]*)-([A-Z][A-Z0-9_]*)-([A-Z][A-Z0-9_]*)-([0-9]{3})$"
+    },
+    "ConditionOperator": {
+      "type": "string",
+      "enum": ["EQUALS","NOT_EQUALS","GREATER_THAN","GREATER_THAN_OR_EQUAL","LESS_THAN","LESS_THAN_OR_EQUAL","IN","NOT_IN","EXISTS","NOT_EXISTS","IS_TRUE","IS_FALSE","CONTAINS","DOES_NOT_CONTAIN","BETWEEN_INCLUSIVE","MATCHES_ENUM"]
+    },
+    "ConditionLeaf": {
+      "type": "object",
+      "required": ["type", "factsPath", "operator"],
+      "additionalProperties": false,
+      "properties": {
+        "type": { "const": "LEAF" },
+        "factsPath": { "type": "string", "minLength": 1 },
+        "operator": { "$ref": "#/definitions/ConditionOperator" },
+        "value": {
+          "oneOf": [
+            { "type": "string" },
+            { "type": "number" },
+            { "type": "boolean" },
+            { "type": "array", "items": { "oneOf": [{ "type": "string" }, { "type": "number" }] } }
+          ]
+        },
+        "description": { "type": "string" }
+      }
+    },
+    "ConditionGroup": {
+      "type": "object",
+      "required": ["type", "operator", "conditions"],
+      "additionalProperties": false,
+      "properties": {
+        "type": { "const": "GROUP" },
+        "operator": { "type": "string", "enum": ["ALL", "ANY", "NOT"] },
+        "conditions": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "oneOf": [{ "$ref": "#/definitions/ConditionLeaf" }, { "$ref": "#/definitions/ConditionGroup" }] }
+        },
+        "description": { "type": "string" }
+      }
+    }
+  },
+  "properties": {
+    "identity": {
+      "type": "object",
+      "required": ["ruleId", "ruleVersion"],
+      "additionalProperties": false,
+      "properties": {
+        "ruleId":               { "$ref": "#/definitions/RuleId" },
+        "ruleVersion":          { "type": "string", "pattern": "^\\d+\\.\\d+\\.\\d+$" },
+        "ruleFamilyId":         { "type": "string" },
+        "overridesRuleId":      { "$ref": "#/definitions/RuleId" },
+        "requiresPreviousRules":{ "type": "array", "items": { "$ref": "#/definitions/RuleId" } },
+        "incompatibleWithRules":{ "type": "array", "items": { "$ref": "#/definitions/RuleId" } }
+      }
+    },
+    "titles": {
+      "type": "object",
+      "required": ["titleEn", "descriptionEn"],
+      "additionalProperties": false,
+      "properties": {
+        "titleEn":       { "type": "string", "minLength": 5, "maxLength": 200 },
+        "titleAr":       { "type": "string", "maxLength": 200 },
+        "titleFr":       { "type": "string", "maxLength": 200 },
+        "descriptionEn": { "type": "string", "minLength": 10, "maxLength": 2000 },
+        "descriptionAr": { "type": "string", "maxLength": 2000 }
+      }
+    },
+    "scope": {
+      "type": "object",
+      "required": ["module", "ruleType", "madhhabScope", "knowledgeReleaseVersion"],
+      "additionalProperties": false,
+      "properties": {
+        "module":                  { "type": "string", "enum": ["MIRATH", "ZAKAT", "SHARED"] },
+        "ruleType":                { "type": "string" },
+        "madhhabScope":            { "type": "array", "minItems": 1, "items": { "type": "string", "enum": ["HANAFI","MALIKI","SHAFII","HANBALI","JAFARI","ALL_SUNNI","ALL_SCHOOLS"] } },
+        "knowledgeReleaseVersion": { "type": "string", "minLength": 1 },
+        "priority":                { "type": "integer", "minimum": 0, "maximum": 1000 }
+      }
+    },
+    "applicability": {
+      "type": "object",
+      "required": ["conditions"],
+      "additionalProperties": false,
+      "properties": {
+        "conditions":       { "oneOf": [{ "$ref": "#/definitions/ConditionLeaf" }, { "$ref": "#/definitions/ConditionGroup" }] },
+        "conditionSummary": { "type": "string" },
+        "conditionCount":   { "type": "integer", "minimum": 0 }
+      }
+    },
+    "decisions": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": ["decisionType"],
+        "properties": {
+          "decisionType": { "type": "string" }
+        }
+      }
+    },
+    "evidenceRefs": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["evidenceId", "evidenceVersion", "referenceLabel", "evidenceType", "evidenceStrength", "isMandatory"],
+        "additionalProperties": false,
+        "properties": {
+          "evidenceId":       { "type": "string", "minLength": 1 },
+          "evidenceVersion":  { "type": "string", "minLength": 1 },
+          "referenceLabel":  { "type": "string", "minLength": 1 },
+          "evidenceType":    { "type": "string", "enum": ["QURAN","HADITH","FIQH_BOOK","CONSENSUS","SCHOLARLY_OPINION"] },
+          "evidenceStrength":{ "type": "string", "enum": ["DEFINITIVE","STRONG","ACCEPTABLE","WEAK"] },
+          "isMandatory":     { "type": "boolean" }
+        }
+      }
+    },
+    "explanationRefs": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["explanationId", "explanationVersion", "audienceType", "languageCode"],
+        "additionalProperties": false,
+        "properties": {
+          "explanationId":      { "type": "string" },
+          "explanationVersion": { "type": "string" },
+          "audienceType":       { "type": "string", "enum": ["GENERAL_USER","SCHOLAR","TECHNICAL"] },
+          "languageCode":       { "type": "string", "minLength": 2, "maxLength": 5 }
+        }
+      }
+    },
+    "governance": {
+      "type": "object",
+      "required": ["status", "isTestFixture", "schemaVersion", "createdBy", "createdAt", "updatedBy", "updatedAt"],
+      "additionalProperties": false,
+      "properties": {
+        "status":          { "type": "string", "enum": ["DRAFT","ACADEMIC_REVIEW","SHARIA_REVIEW","TECHNICAL_VALIDATION","APPROVED","PRODUCTION","DEPRECATED","REJECTED","SUPERSEDED"] },
+        "isTestFixture":   { "type": "boolean" },
+        "fixtureTag":      { "type": "string", "const": "TEST_ONLY_FIXTURE" },
+        "schemaVersion":   { "type": "string" },
+        "createdBy":       { "type": "string" },
+        "createdAt":       { "type": "string", "format": "date-time" },
+        "updatedBy":       { "type": "string" },
+        "updatedAt":       { "type": "string", "format": "date-time" },
+        "reviewNotes":     { "type": "string" },
+        "requiresScholarCounterSignPerExecution": { "type": "boolean" }
+      }
+    },
+    "versioning": {
+      "type": "object",
+      "required": ["contentChecksum"],
+      "additionalProperties": false,
+      "properties": {
+        "contentChecksum": { "type": "string", "minLength": 64, "maxLength": 64 },
+        "supersedes":      { "type": "string" },
+        "effectiveFrom":   { "type": "string", "format": "date-time" },
+        "effectiveUntil":  { "type": "string", "format": "date-time" },
+        "changelogNote":   { "type": "string" }
+      }
+    }
+  }
+}
