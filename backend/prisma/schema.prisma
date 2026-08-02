@@ -141,6 +141,8 @@ model ZakatCalculation {
   hawl_start_date   DateTime?
 
   assets            ZakatAsset[]
+  /** Phase 8: Canonical category asset instances keyed by CanonicalZakatCategoryId */
+  asset_instances   ZakatAssetInstance[]
 
   @@map("zakat_calculations")
 }
@@ -1541,4 +1543,477 @@ model HijabResolutionAuditRuleLink {
 
   @@unique([audit_id, hijab_rule_db_id])
   @@map("hijab_resolution_audit_rule_links")
+}
+
+// ─── Phase 7: Canonical Heir Identifier & Entity Registry Models ──────────────
+
+model HeirEntity {
+  id                    String        @id @default(cuid())
+  heir_id               String        @unique // Permanent uppercase ASCII ID (e.g. "FULL_BROTHER")
+  current_version       String        @default("1.0.0")
+  schema_version        String        @default("1.0.0")
+  canonical_name        String?
+  relationship_category String        // "SPOUSE" | "ASCENDANT" | "DESCENDANT" | "SIBLING" | etc.
+  lineage_side          String        // "NONE" | "PATERNAL" | "MATERNAL" | "BOTH"
+  sex_classification    String        // "MALE" | "FEMALE"
+  generation_direction  String        // "SAME_GENERATION" | "ASCENDING" | "DESCENDING"
+  generation_distance   Int           @default(0)
+  parent_heir_id        String?
+  allow_count           Boolean       @default(true)
+  minimum_count         Int           @default(0)
+  maximum_count         Int?
+  governance_status     String        @default("DRAFT") // "DRAFT" | "APPROVED" | "PRODUCTION" | etc.
+  effective_from        DateTime?
+  effective_until       DateTime?
+  content_checksum      String
+  created_by            String        @default("SYSTEM")
+  created_at            DateTime      @default(now())
+  updated_by            String        @default("SYSTEM")
+  updated_at            DateTime      @updatedAt
+
+  versions              HeirEntityVersion[]
+  localizations         HeirLocalization[]
+  aliases               HeirAlias[]
+  lineage_paths         HeirRelationshipPath[]
+  madhhab_support       HeirMadhhabSupport[]
+  group_memberships     HeirGroupMembership[]
+  instances             HeirInstance[]
+  audit_events          HeirAuditEvent[]
+
+  @@index([heir_id])
+  @@index([relationship_category])
+  @@index([governance_status])
+  @@map("heir_entities")
+}
+
+model HeirEntityVersion {
+  id                  String     @id @default(cuid())
+  heir_entity_id      String
+  heir_entity         HeirEntity @relation(fields: [heir_entity_id], references: [id])
+  heir_id             String
+  version             String     // e.g. "1.0.0"
+  snapshot_json       Json       // Complete HeirEntityRecord JSON snapshot
+  content_checksum    String
+  created_by          String     @default("SYSTEM")
+  created_at          DateTime   @default(now())
+
+  @@unique([heir_id, version])
+  @@map("heir_entity_versions")
+}
+
+model HeirLocalization {
+  id                    String     @id @default(cuid())
+  heir_entity_id        String
+  heir_entity           HeirEntity @relation(fields: [heir_entity_id], references: [id])
+  heir_id               String
+  language_tag          String     // "en" | "ar" | "ha" | "fr" | "sw"
+  singular_label        String
+  plural_label          String
+  short_label           String?
+  formal_report_label   String?
+  short_description     String
+  educational_description String?
+  grammar_notes         String?
+  review_status         String     @default("DRAFT") // "DRAFT" | "APPROVED"
+  updated_by            String     @default("SYSTEM")
+  updated_at            DateTime   @updatedAt
+
+  @@unique([heir_id, language_tag])
+  @@map("heir_localizations")
+}
+
+model HeirAlias {
+  id                         String     @id @default(cuid())
+  heir_entity_id             String
+  heir_entity                HeirEntity @relation(fields: [heir_entity_id], references: [id])
+  heir_id                    String
+  alias_id                   String     @unique
+  language_tag               String
+  alias_text                 String
+  alias_type                 String     // "COMMON_TERM" | "SCHOLARLY_TERM" | "LEGACY_TERM" | etc.
+  matching_mode              String     @default("EXACT")
+  requires_user_confirmation Boolean    @default(false)
+  source_provenance_json     Json?
+  review_status              String     @default("DRAFT")
+  created_at                 DateTime   @default(now())
+
+  @@index([alias_text])
+  @@index([heir_id])
+  @@map("heir_aliases")
+}
+
+model HeirRelationshipPath {
+  id             String     @id @default(cuid())
+  heir_entity_id String
+  heir_entity    HeirEntity @relation(fields: [heir_entity_id], references: [id])
+  heir_id        String
+  path_json      Json       // Lineage path entries array
+  description_en String?
+  created_at     DateTime   @default(now())
+
+  @@map("heir_relationship_paths")
+}
+
+model HeirGroup {
+  id                String                @id @default(cuid())
+  heir_group_id     String                @unique // Permanent group ID (e.g. "SPOUSES")
+  current_version   String                @default("1.0.0")
+  title_en          String
+  title_ar          String?
+  title_ha          String?
+  membership_mode   String                @default("STATIC") // "STATIC" | "MADHHAB_SPECIFIC"
+  governance_status String                @default("DRAFT")
+  content_checksum  String
+  updated_by        String                @default("SYSTEM")
+  updated_at        DateTime              @updatedAt
+
+  memberships       HeirGroupMembership[]
+  versions          HeirGroupVersion[]
+
+  @@map("heir_groups")
+}
+
+model HeirGroupVersion {
+  id               String    @id @default(cuid())
+  heir_group_id    String
+  heir_group       HeirGroup @relation(fields: [heir_group_id], references: [id])
+  version          String
+  snapshot_json    Json
+  content_checksum String
+  created_at       DateTime  @default(now())
+
+  @@unique([heir_group_id, version])
+  @@map("heir_group_versions")
+}
+
+model HeirGroupMembership {
+  id             String     @id @default(cuid())
+  heir_group_id String
+  heir_group    HeirGroup  @relation(fields: [heir_group_id], references: [id])
+  heir_entity_id String
+  heir_entity    HeirEntity @relation(fields: [heir_entity_id], references: [id])
+  heir_id        String
+  madhhab        String?    // Null for shared static membership, or specific madhhab code
+  created_at     DateTime   @default(now())
+
+  @@map("heir_group_memberships")
+}
+
+model HeirMadhhabSupport {
+  id                   String     @id @default(cuid())
+  heir_entity_id       String
+  heir_entity          HeirEntity @relation(fields: [heir_entity_id], references: [id])
+  heir_id              String
+  madhhab              String     // "HANAFI" | "MALIKI" | "SHAFII" | "HANBALI" | "JAFARI"
+  input_support_status String     // "SUPPORTED" | "NOT_SUPPORTED" | "NOT_YET_MODELLED" | "REVIEW_REQUIRED"
+  notes                String?
+  updated_at           DateTime   @updatedAt
+
+  @@unique([heir_id, madhhab])
+  @@map("heir_madhhab_supports")
+}
+
+model HeirDisplayConfiguration {
+  id                   String   @id @default(cuid())
+  section_key          String   // e.g. "SPOUSES", "PARENTS", "CHILDREN"
+  display_order        Int
+  heir_id              String
+  is_visible_by_default Boolean  @default(true)
+  madhhab              String?  // Null for all madhhabs
+  updated_at           DateTime @updatedAt
+
+  @@map("heir_display_configurations")
+}
+
+model HeirInstance {
+  id                 String               @id @default(cuid())
+  heir_instance_id   String               @unique
+  calculation_id     String?
+  heir_entity_id     String
+  heir_entity        HeirEntity           @relation(fields: [heir_entity_id], references: [id])
+  heir_id            String
+  entity_version     String               @default("1.0.0")
+  count              Int                  @default(1)
+  input_source       String               @default("USER_SELECTION")
+  original_language  String               @default("en")
+  original_input     String
+  norm_status        String               @default("RESOLVED")
+  confirmed_by_user  Boolean              @default(true)
+  created_at         DateTime             @default(now())
+
+  optional_persons   HeirPersonInstance[]
+
+  @@map("heir_instances")
+}
+
+model HeirPersonInstance {
+  id               String       @id @default(cuid())
+  heir_instance_id String
+  heir_instance    HeirInstance @relation(fields: [heir_instance_id], references: [id])
+  display_name     String?
+  created_at       DateTime     @default(now())
+
+  @@map("heir_person_instances")
+}
+
+model HeirNormalizationRecord {
+  id                  String   @id @default(cuid())
+  original_input      String
+  language_tag        String
+  madhhab             String?
+  status              String   // "RESOLVED" | "AMBIGUOUS" | "UNSUPPORTED" | "REVIEW_REQUIRED"
+  resolved_heir_id    String?
+  matched_alias_id    String?
+  confidence_mode     String?
+  user_confirmed      Boolean  @default(false)
+  normalization_trace Json?
+  created_at          DateTime @default(now())
+
+  @@map("heir_normalization_records")
+}
+
+model HeirAvailabilityRecord {
+  id                       String   @id @default(cuid())
+  heir_id                  String
+  madhhab                  String
+  knowledge_release_version String  @default("1.0.0")
+  input_support_status     String
+  checked_at               DateTime @default(now())
+
+  @@map("heir_availability_records")
+}
+
+model HeirRegistryReleaseMembership {
+  id                       String   @id @default(cuid())
+  knowledge_release_version String
+  heir_id                  String
+  entity_version           String
+  included_at              DateTime @default(now())
+
+  @@unique([knowledge_release_version, heir_id, entity_version])
+  @@map("heir_registry_release_memberships")
+}
+
+model HeirValidationResult {
+  id         String   @id @default(cuid())
+  heir_id    String
+  version    String
+  passed     Boolean
+  issues_json Json     @default("[]")
+  checked_at DateTime @default(now())
+
+  @@map("heir_validation_results")
+}
+
+model HeirAuditEvent {
+  id             String     @id @default(cuid())
+  heir_entity_id String
+  heir_entity    HeirEntity @relation(fields: [heir_entity_id], references: [id])
+  heir_id        String
+  event_type     String     // "CREATED" | "SUBMITTED_REVIEW" | "APPROVED" | "PUBLISHED" | "UPDATED"
+  actor          String
+  metadata_json  Json?
+  timestamp      DateTime   @default(now())
+
+  @@map("heir_audit_events")
+}
+
+// ─── Phase 8: Canonical Zakat Category Registry Models ───────────────────────
+
+/// Canonical Zakat category entity record
+model ZakatCategoryEntity {
+  id                  String                          @id @default(cuid())
+  category_id         String                          // CanonicalZakatCategoryId — e.g. "GOLD", "CASH_AND_BANK"
+  version             String                          @default("1.0.0")
+  schema_version      String                          @default("1.0.0")
+  canonical_name      String
+  domain              String                          // ZakatCategoryDomain
+  value_type          String                          // ZakatValueType
+  nisab_base          String                          // ZakatNisabBase
+  hawl_requirement    String                          // ZakatHawlRequirement
+  is_liability        Boolean                         @default(false)
+  is_user_input       Boolean                         @default(true)
+  allows_item_breakdown Boolean                       @default(false)
+  requires_irrigation_method Boolean                  @default(false)
+  group_memberships   String[]                        // Array of CanonicalZakatGroupId strings
+  label_key           String
+  description_key     String
+  report_label_key    String
+  placeholder_key     String?
+  governance_status   String                          @default("DRAFT")
+  effective_from      DateTime
+  effective_until     DateTime?
+  content_checksum    String
+  created_at          DateTime                        @default(now())
+  created_by          String                          @default("SYSTEM_BASELINE")
+  updated_at          DateTime                        @updatedAt
+  updated_by          String                          @default("SYSTEM_BASELINE")
+
+  localizations       ZakatCategoryLocalization[]
+  aliases             ZakatCategoryAlias[]
+  madhhab_support     ZakatCategoryMadhhabSupport[]
+  audit_events        ZakatCategoryAuditEvent[]
+
+  @@unique([category_id, version])
+  @@index([category_id])
+  @@index([domain])
+  @@index([governance_status])
+  @@map("zakat_category_entities")
+}
+
+/// Per-language localization record for a Zakat category entity
+model ZakatCategoryLocalization {
+  id                    String              @id @default(cuid())
+  zakat_category_entity_id String
+  entity                ZakatCategoryEntity @relation(fields: [zakat_category_entity_id], references: [id], onDelete: Cascade)
+  category_id           String
+  language_code         String              // SupportedZakatLanguage
+  label                 String
+  description           String
+  report_label          String
+  input_placeholder     String?
+  educational_description String?
+  arabic_term           String?
+  review_status         String              @default("DRAFT")
+  reviewed_by           String?
+  created_at            DateTime            @default(now())
+  updated_at            DateTime            @updatedAt
+
+  @@unique([zakat_category_entity_id, language_code])
+  @@index([category_id, language_code])
+  @@map("zakat_category_localizations")
+}
+
+/// Alias-to-canonical-ID mapping for Zakat categories
+model ZakatCategoryAlias {
+  id                    String              @id @default(cuid())
+  zakat_category_entity_id String
+  entity                ZakatCategoryEntity @relation(fields: [zakat_category_entity_id], references: [id], onDelete: Cascade)
+  alias_text            String
+  target_category_id    String              // CanonicalZakatCategoryId
+  alias_type            String              // ZakatAliasType
+  matching_mode         String              // ZakatAliasMatchingMode
+  language_code         String?
+  is_deprecated         Boolean             @default(false)
+  migration_note        String?
+  created_at            DateTime            @default(now())
+
+  @@unique([alias_text, target_category_id, alias_type])
+  @@index([alias_text])
+  @@index([target_category_id])
+  @@map("zakat_category_aliases")
+}
+
+/// Per-madhhab support status for a Zakat category entity
+model ZakatCategoryMadhhabSupport {
+  id                    String              @id @default(cuid())
+  zakat_category_entity_id String
+  entity                ZakatCategoryEntity @relation(fields: [zakat_category_entity_id], references: [id], onDelete: Cascade)
+  category_id           String
+  madhhab               String              // "HANAFI" | "MALIKI" | "SHAFII" | "HANBALI" | "JAFARI"
+  input_support_status  String              // ZakatCategoryInputSupportStatus
+  zakatable_override    Boolean?
+  nisab_base_override   String?
+  scholar_notes         String?
+  created_at            DateTime            @default(now())
+  updated_at            DateTime            @updatedAt
+
+  @@unique([zakat_category_entity_id, madhhab])
+  @@index([category_id, madhhab])
+  @@map("zakat_category_madhhab_support")
+}
+
+/// Canonical Zakat category group definition
+model ZakatCategoryGroup {
+  id               String   @id @default(cuid())
+  group_id         String   @unique  // CanonicalZakatGroupId
+  version          String   @default("1.0.0")
+  canonical_name   String
+  label_key        String
+  description_key  String
+  membership_mode  String   @default("STATIC")
+  display_order    Int      @default(0)
+  is_collapsible   Boolean  @default(true)
+  status           String   @default("DRAFT")
+  created_at       DateTime @default(now())
+  updated_at       DateTime @updatedAt
+
+  members          ZakatCategoryGroupMembership[]
+
+  @@index([group_id])
+  @@map("zakat_category_groups")
+}
+
+/// Group membership entry linking a Zakat category to a group
+model ZakatCategoryGroupMembership {
+  id              String             @id @default(cuid())
+  group_id        String
+  group           ZakatCategoryGroup @relation(fields: [group_id], references: [id], onDelete: Cascade)
+  category_id     String             // CanonicalZakatCategoryId
+  display_order   Int                @default(0)
+  is_mandatory    Boolean            @default(true)
+  madhhab_scope   String[]           // Empty = all madhhabs
+
+  @@unique([group_id, category_id])
+  @@index([category_id])
+  @@map("zakat_category_group_memberships")
+}
+
+/// Per-calculation Zakat asset entry keyed by canonical category ID
+model ZakatAssetInstance {
+  id                    String          @id @default(cuid())
+  calculation_id        String
+  zakat_calculation     ZakatCalculation @relation(fields: [calculation_id], references: [id], onDelete: Cascade)
+  category_id           String          // CanonicalZakatCategoryId
+  category_version      String          @default("1.0.0")
+  amount                Float
+  unit                  String          // currency code, "grams", "head", "kg"
+  currency_code         String?
+  raw_input_text        String?
+  irrigation_method     String?         // "RAIN_FED" | "IRRIGATION"
+  hawl_start_date       DateTime?
+  hawl_status           String?         // HawlStatus
+  input_source          String          @default("USER_ENTRY")
+  user_confirmed        Boolean         @default(false)
+  is_liability          Boolean         @default(false)
+  breakdown_json        Json?           // Array of ZakatAssetBreakdownItem
+  recorded_at           DateTime        @default(now())
+
+  @@index([calculation_id])
+  @@index([category_id])
+  @@map("zakat_asset_instances")
+}
+
+/// Normalization audit log for Zakat category input resolution
+model ZakatCategoryNormalizationRecord {
+  id                     String   @id @default(cuid())
+  calculation_id         String?
+  raw_input_text         String
+  resolution_status      String   // ZakatNormalizationStatus
+  resolved_category_id   String?  // CanonicalZakatCategoryId
+  candidate_category_ids String[] // For AMBIGUOUS status
+  matched_alias_text     String?
+  explanation            String?
+  madhhab                String?
+  language_tag           String?
+  created_at             DateTime @default(now())
+
+  @@index([calculation_id])
+  @@index([resolved_category_id])
+  @@map("zakat_category_normalization_records")
+}
+
+/// Governance lifecycle audit events for Zakat category entities
+model ZakatCategoryAuditEvent {
+  id                       String              @id @default(cuid())
+  zakat_category_entity_id String
+  entity                   ZakatCategoryEntity @relation(fields: [zakat_category_entity_id], references: [id])
+  category_id              String
+  event_type               String              // "CREATED" | "SUBMITTED_REVIEW" | "APPROVED" | "PUBLISHED" | "UPDATED" | "DEPRECATED"
+  actor                    String
+  metadata_json            Json?
+  timestamp                DateTime            @default(now())
+
+  @@index([category_id])
+  @@map("zakat_category_audit_events")
 }

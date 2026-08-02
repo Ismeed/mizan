@@ -63,3 +63,29 @@ export * from './types/madhhab-resolution.types';
 // ─── Phase 6: Inheritance Blocking and Hijab Rule System ───────────────────
 export * from './types/hijab-rule.types';
 export * from './schemas/zod/hijab-rule.schema';
+
+// ─── Phase 7: Canonical Heir Identifier and Entity Registry ────────────────
+export * from './types/heir/canonical-heir.types';
+export * from './types/heir/heir-lineage.types';
+export * from './types/heir/heir-localization.types';
+export * from './types/heir/heir-alias.types';
+export * from './types/heir/heir-group.types';
+export * from './types/heir/heir-instance.types';
+export * from './types/heir/heir-availability.types';
+export * from './schemas/zod/heir/canonical-heir.schema';
+export * from './registry/canonical-heirs.registry';
+export * from './registry/canonical-heir-groups.registry';
+export * from './registry/heir-legacy-alias.registry';
+
+// ─── Phase 8: Canonical Zakat Category Identifier and Asset Registry ────────
+export * from './types/zakat/canonical-zakat-category.types';
+export * from './types/zakat/zakat-nisab.types';
+export * from './types/zakat/zakat-localization.types';
+export * from './types/zakat/zakat-alias.types';
+export * from './types/zakat/zakat-group.types';
+export * from './types/zakat/zakat-asset-instance.types';
+export * from './types/zakat/zakat-eligibility.types';
+export * from './schemas/zod/zakat/canonical-zakat-category.schema';
+export * from './registry/canonical-zakat-categories.registry';
+export * from './registry/canonical-zakat-groups.registry';
+export * from './registry/zakat-legacy-alias.registry';

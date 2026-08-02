@@ -6,7 +6,7 @@
  */
 
 import { Router } from 'express';
-import { authenticateToken } from '../../middleware/auth.middleware';
+import { authenticateToken } from '../../shared/middleware/auth.middleware';
 import {
   resolveHijab,
   listHijabRules,

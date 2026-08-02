@@ -16,6 +16,8 @@ import { profileRouter }        from './features/profile/profile.routes';
 import { rulesAdminRouter }     from './features/rules/rules.routes';
 import { evidenceRouter, adminEvidenceRouter } from './features/evidence/evidence.routes';
 import hijabRouter from './features/hijab/hijab.routes';
+import heirsRouter from './features/heirs/heirs.routes';
+import zakatCategoriesRouter from './features/zakat/zakat-categories.routes';
 import { apiLimiter }        from './shared/middleware/rate-limit.middleware';
 import { sendError }         from './shared/utils/response.utils';
 
@@ -50,6 +52,8 @@ app.use('/api/admin/knowledge', knowledgeAdminRouter);
 app.use('/api/admin/rules',     rulesAdminRouter);
 app.use('/api/admin',         adminRouter);
 app.use('/api/hijab',         hijabRouter);
+app.use('/api/mirath/heirs',  heirsRouter);
+app.use('/api/zakat/categories', zakatCategoriesRouter);
 
 // ── 404 Handler ───────────────────────────────────────────────────────────────
 app.use((_req, res) => {

@@ -10,6 +10,7 @@
  */
 
 import { Madhhab } from './inheritance.types';
+import type { CanonicalZakatCategoryId } from './zakat/canonical-zakat-category.types';
 
 // ─── Calculation Profile Subset ───────────────────────────────────────────────
 
@@ -59,10 +60,19 @@ export interface MirathHeirsFacts {
   sonsOfPatUncles:       HeirFacts;
 }
 
+import { CanonicalHeirId } from './heir/canonical-heir.types';
+
+export interface CanonicalHeirFactsMap {
+  [heirId: string]: HeirFacts;
+}
+
 export interface CanonicalMirathFacts {
   profile: ProfileFacts;
   estate: MirathEstateFacts;
+  /** Legacy camelCase heirs map (kept for backward compatibility) */
   heirs: MirathHeirsFacts;
+  /** Phase 7 Canonical ID heir facts map (keyed by permanent uppercase CanonicalHeirId) */
+  canonicalHeirs?: Record<CanonicalHeirId, HeirFacts>;
   /** Computed meta-facts derived from heirs */
   computed: {
     hasChildren: boolean;
@@ -80,6 +90,8 @@ export interface ZakatAssetFacts {
   isPresent: boolean;
   isZakatable?: boolean;
   irrigationMethod?: 'RAIN_FED' | 'IRRIGATION';
+  /** Whether hawl has been met for this specific asset entry */
+  hawlMet?: boolean;
 }
 
 export interface ZakatNisabFacts {
@@ -92,8 +104,22 @@ export interface ZakatNisabFacts {
   hawlMet: boolean;
 }
 
+/**
+ * Phase 8 Canonical ID-keyed Zakat asset facts map.
+ * Keyed by permanent CanonicalZakatCategoryId.
+ * This is the AUTHORITATIVE representation for the Rule Engine.
+ */
+export interface CanonicalZakatAssetFactsMap {
+  [categoryId: string]: ZakatAssetFacts;
+}
+
 export interface CanonicalZakatFacts {
   profile: ProfileFacts;
+  /**
+   * Legacy named assets map (kept for backward compatibility).
+   * @deprecated Use canonicalAssets (keyed by CanonicalZakatCategoryId) instead.
+   * Will be removed after all screens migrate to canonical IDs.
+   */
   assets: {
     cash:              ZakatAssetFacts;
     gold:              ZakatAssetFacts;
@@ -104,6 +130,12 @@ export interface CanonicalZakatFacts {
     agriculture:       ZakatAssetFacts;
     livestock:         ZakatAssetFacts;
   };
+  /**
+   * Phase 8 Canonical ID-keyed Zakat asset facts map.
+   * Keys are permanent CanonicalZakatCategoryId values (e.g. 'CASH_AND_BANK', 'GOLD').
+   * This is the authoritative input for all new Rule Engine conditions and services.
+   */
+  canonicalAssets?: Record<CanonicalZakatCategoryId, ZakatAssetFacts>;
   liabilities: {
     totalLiabilities: number;
     shortTermDebts:   number;
@@ -116,6 +148,9 @@ export interface CanonicalZakatFacts {
     meetsNisabSilver:     boolean;
     meetsNisabLower:      boolean;
   };
+  /** Registry version used when these facts were compiled */
+  zakatCategoryRegistryVersion?: string;
 }
 
 export type AnyCanonicalFacts = CanonicalMirathFacts | CanonicalZakatFacts;
+

@@ -34,3 +34,5 @@ export const authenticate = async (req: Request, res: Response, next: NextFuncti
 };
 
 export const authMiddleware = authenticate;
+export const authenticateToken = authenticate;
+
