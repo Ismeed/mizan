@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import { aiEvidenceController } from './ai-evidence.controller';
-import { authMiddleware } from '../../shared/middleware/auth.middleware';
-import { adminMiddleware } from '../../shared/middleware/admin.middleware';
+import { authMiddleware } from '../../../shared/middleware/auth.middleware';
+import { adminMiddleware } from '../../../shared/middleware/admin.middleware';
 
 export const aiEvidenceRouter = Router();
 export const adminAiEvidenceRouter = Router();

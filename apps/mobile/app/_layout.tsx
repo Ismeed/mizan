@@ -1,85 +1,153 @@
+/**
+ * MIZAN Root Layout — Supabase Session Hydration + Hydration-Gated Auth Guard
+ *
+ * Session Hydration:
+ *   1. On mount: call authSupabaseService.restoreSession() from Supabase AsyncStorage.
+ *   2. Subscribe to supabase.auth.onAuthStateChange() for live session changes.
+ *   3. Mark isHydrated = true after the first restore attempt.
+ *   4. Hide the native splash screen.
+ *
+ * Auth Guard rules (evaluated only after isHydrated === true):
+ *   UNAUTHENTICATED | SESSION_REVOKED → redirect to /(auth)
+ *   ONBOARDING_REQUIRED              → redirect to /(auth)/onboarding
+ *   AUTHENTICATED + on auth screen   → redirect to /(tabs)
+ *   INITIALIZING or !isHydrated      → show loading, suppress redirect
+ *
+ * CRITICAL: Guard never redirects before isHydrated is true.
+ * This prevents the "Signup flash" for returning authenticated users.
+ *
+ * Provider order (stable — preference changes must NEVER remount AuthGuard):
+ *   RootLayout → AuthGuard (singleton) → Stack
+ * Preferences live in a separate store that AuthGuard does NOT depend on.
+ */
 import { DarkTheme, ThemeProvider } from '@react-navigation/native';
 import { Stack, useRouter, useSegments } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef } from 'react';
 import { View, ActivityIndicator, Platform } from 'react-native';
 import { colors } from '../src/constants/colors';
 import { useAuthStore } from '../src/stores/auth.store';
-import { authService } from '../src/services/auth.service';
+import { authSupabaseService } from '../src/services/auth.supabase.service';
+import { supabase } from '../src/lib/supabase';
+import { profileService } from '../src/services/profile.service';
 
-// Prevent auto hiding of splash screen
 SplashScreen.preventAutoHideAsync().catch(() => {});
 
-/**
- * Auth Guard — handles:
- * 1. Unauthenticated → auth landing
- * 2. Authenticated + onboarding incomplete → onboarding
- * 3. Authenticated + onboarding complete → home (no interruption)
- */
-function AuthGuard() {
-  const segments  = useSegments();
-  const router    = useRouter();
-  const { token, onboardingComplete } = useAuthStore();
+// ── AuthGuard — singleton route guard ─────────────────────────────────────────
 
-  const segmentKey = (segments as string[]).join('/');
+function AuthGuard() {
+  const router   = useRouter();
+  const segments = useSegments();
+  const { status, isHydrated, onboardingComplete } = useAuthStore();
+
+  const segsKey = (segments as string[]).join('/');
 
   useEffect(() => {
-    const segs         = (segments as string[]) || [];
-    const inAuth       = segs[0] === '(auth)';
-    const inOnboarding = segs[0] === '(auth)' && segs[1] === 'onboarding';
-
-    if (!token && !inAuth) {
-      // Not logged in → auth landing
-      router.replace('/(auth)');
+    // ── Gate 1: Never act before hydration is complete ─────────────────────
+    if (!isHydrated) {
       return;
     }
 
-    if (token && inAuth && !inOnboarding) {
-      // Logged in but on auth screen → check onboarding
-      if (!onboardingComplete) {
-        router.replace('/(auth)/onboarding');
-      } else {
-        router.replace('/(tabs)');
+    const segs         = (segments as string[]) ?? [];
+    const inAuth       = segs[0] === '(auth)';
+    const inOnboarding = inAuth && segs[1] === 'onboarding';
+    const inSplash     = inAuth && segs[1] === 'splash';
+
+    // ── Gate 2: Unauthenticated → auth landing ─────────────────────────────
+    if (status === 'UNAUTHENTICATED' || status === 'SESSION_REVOKED') {
+      if (!inAuth) {
+        router.replace('/(auth)');
       }
       return;
     }
 
-    if (token && !inAuth && !onboardingComplete) {
-      // Logged in, not on auth, but onboarding pending
-      router.replace('/(auth)/onboarding');
+    // ── Gate 3: Onboarding required ────────────────────────────────────────
+    if (status === 'ONBOARDING_REQUIRED' || (status === 'AUTHENTICATED' && !onboardingComplete)) {
+      if (!inOnboarding && !inSplash) {
+        router.replace('/(auth)/onboarding');
+      }
+      return;
     }
-  }, [token, segmentKey, onboardingComplete]);
+
+    // ── Gate 4: Authenticated user on an auth screen → tabs ───────────────
+    if (status === 'AUTHENTICATED' && onboardingComplete && inAuth && !inSplash) {
+      router.replace('/(tabs)');
+    }
+  }, [status, isHydrated, segsKey, onboardingComplete]);
 
   return null;
 }
 
-export default function RootLayout() {
-  const { setAuth } = useAuthStore();
-  const [appReady, setAppReady] = useState(false);
+// ── RootLayout ────────────────────────────────────────────────────────────────
 
-  // Restore persisted session on startup
+export default function RootLayout() {
+  const { setSession, logout, setHydrated, setProfile, revokeSession } = useAuthStore();
+  const isHydrated = useAuthStore((s) => s.isHydrated);
+
+  // ── Step 1: Restore persisted session on startup ──────────────────────────
   useEffect(() => {
     let mounted = true;
-    authService.restoreSession()
-      .then((session) => {
-        if (mounted && session) {
-          setAuth(session.user as any, session.token);
+
+    (async () => {
+      try {
+        const result = await authSupabaseService.restoreSession();
+        if (!mounted) return;
+
+        if (result) {
+          setSession(result.session, result.profile);
+        } else {
+          logout();
         }
-      })
-      .catch((err) => {
-        console.warn('[RootLayout] Session restore error:', err);
-      })
-      .finally(() => {
+      } catch {
+        if (mounted) logout();
+      } finally {
         if (mounted) {
-          setAppReady(true);
+          setHydrated();
           SplashScreen.hideAsync().catch(() => {});
         }
-      });
+      }
+    })();
 
     return () => { mounted = false; };
   }, []);
 
-  if (!appReady) {
+  // ── Step 2: Subscribe to live Supabase auth state changes ─────────────────
+  // This handles token refresh, session expiry, and sign-in from other tabs.
+  useEffect(() => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      async (event, session) => {
+        if (event === 'SIGNED_OUT') {
+          useAuthStore.getState().logout();
+          return;
+        }
+
+        if (event === 'TOKEN_REFRESHED' && session) {
+          // Update token without changing other state
+          useAuthStore.setState({
+            session,
+            accessToken: session.access_token,
+            status: 'AUTHENTICATED',
+          });
+          return;
+        }
+
+        if ((event === 'SIGNED_IN' || event === 'USER_UPDATED') && session) {
+          // Load or reload profile after sign-in events
+          try {
+            const profile = await profileService.getCurrentProfile();
+            useAuthStore.getState().setSession(session, profile);
+          } catch {
+            useAuthStore.getState().setSession(session, null);
+          }
+        }
+      }
+    );
+
+    return () => subscription.unsubscribe();
+  }, []);
+
+  // Show loading UI while hydrating
+  if (!isHydrated) {
     return (
       <View style={{ flex: 1, backgroundColor: colors.background, justifyContent: 'center', alignItems: 'center' }}>
         <ActivityIndicator size="large" color={colors.secondary} />
@@ -100,17 +168,16 @@ export default function RootLayout() {
     },
   };
 
-  const sharedScreenOptions = {
-    headerShown:       false,
-    contentStyle:      { backgroundColor: colors.background },
-    animation:         Platform.OS === 'android' ? 'fade' as const : 'default' as const,
-    animationDuration: 220,
-  };
-
   return (
     <ThemeProvider value={customTheme}>
       <AuthGuard />
-      <Stack screenOptions={sharedScreenOptions}>
+      <Stack
+        screenOptions={{
+          headerShown:  false,
+          contentStyle: { backgroundColor: colors.background },
+          animation:    Platform.OS === 'android' ? 'fade' : 'default',
+        }}
+      >
         <Stack.Screen name="(auth)"        options={{ animation: Platform.OS === 'android' ? 'fade' : 'default' }} />
         <Stack.Screen name="(tabs)"        options={{ animation: 'none' }} />
         <Stack.Screen name="inheritance"   options={{ animation: Platform.OS === 'android' ? 'fade' : 'slide_from_right' }} />

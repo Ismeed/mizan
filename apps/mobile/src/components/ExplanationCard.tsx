@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { RenderedExplanation } from '@mizan/shared';
 import { RTLText } from './RTLText';
-import { Colors } from '../constants/colors';
+import { colors } from '../constants/colors';
 
 export interface ExplanationCardProps {
   explanation: RenderedExplanation;
@@ -88,7 +88,7 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 16,
     fontWeight: 'bold',
-    color: Colors?.gold?.main || '#D4AF37',
+    color: colors.secondary,
     flex: 1,
   },
   madhhabBadge: {
@@ -99,7 +99,7 @@ const styles = StyleSheet.create({
   },
   madhhabText: {
     fontSize: 12,
-    color: Colors?.gold?.main || '#D4AF37',
+    color: colors.secondary,
     fontWeight: '600',
   },
   fallbackNotice: {

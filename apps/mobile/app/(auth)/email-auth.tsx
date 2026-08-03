@@ -1,7 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import {
   View, Text, StyleSheet, TouchableOpacity,
-  KeyboardAvoidingView, Platform, ScrollView,
+  KeyboardAvoidingView, Platform, ScrollView, TextInput,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -16,19 +16,31 @@ import { spacing, borderRadius } from '../../src/constants/spacing';
 import { useAuth } from '../../src/hooks/useAuth';
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const NAME_REGEX  = /^[a-zA-Z\u00C0-\u024F\u0600-\u06FF\u0750-\u077F '-]+$/;
 
 export default function EmailAuthScreen() {
   const router = useRouter();
   const { requestOtp, isLoading } = useAuth();
 
-  const [name,       setName]       = useState('');
+  const [firstName,  setFirstName]  = useState('');
+  const [surname,    setSurname]    = useState('');
   const [email,      setEmail]      = useState('');
   const [localError, setLocalError] = useState<string | null>(null);
 
+  const surnameRef = useRef<TextInput | null>(null);
+  const emailRef   = useRef<TextInput | null>(null);
+
   const validate = (): string | null => {
-    if (!name.trim() || name.trim().length < 2) return 'Please enter your full name (at least 2 characters).';
-    if (!email.trim())                           return 'Please enter your email address.';
-    if (!EMAIL_REGEX.test(email.trim()))         return 'Please enter a valid email address.';
+    const fn = firstName.trim();
+    const sn = surname.trim();
+    const em = email.trim().toLowerCase();
+
+    if (!fn || fn.length < 2)    return 'Please enter your first name (at least 2 characters).';
+    if (!NAME_REGEX.test(fn))    return 'First name contains invalid characters.';
+    if (!sn || sn.length < 2)    return 'Please enter your surname (at least 2 characters).';
+    if (!NAME_REGEX.test(sn))    return 'Surname contains invalid characters.';
+    if (!em)                     return 'Please enter your email address.';
+    if (!EMAIL_REGEX.test(em))   return 'Please enter a valid email address.';
     return null;
   };
 
@@ -37,11 +49,16 @@ export default function EmailAuthScreen() {
     if (err) { setLocalError(err); return; }
     setLocalError(null);
 
-    const ok = await requestOtp(email.trim().toLowerCase(), name.trim());
+    const fn   = firstName.trim();
+    const sn   = surname.trim();
+    const em   = email.trim().toLowerCase();
+    const name = `${fn} ${sn}`;
+
+    const ok = await requestOtp(em, name);
     if (ok) {
       router.push({
         pathname: '/(auth)/otp',
-        params:   { email: email.trim().toLowerCase(), name: name.trim() },
+        params:   { email: em, name },
       });
     } else {
       setLocalError('Failed to send verification code. Please try again.');
@@ -70,7 +87,7 @@ export default function EmailAuthScreen() {
               <Logo size={56} showText={false} />
               <Text style={styles.heading}>Create Account</Text>
               <Text style={styles.subheading}>
-                Enter your name and email to receive{'\n'}a verification code.
+                Enter your details to receive{'  '}a secure verification code.
               </Text>
             </View>
 
@@ -83,17 +100,33 @@ export default function EmailAuthScreen() {
                 </View>
               ) : null}
 
+              {/* First Name */}
               <Input
-                label="Full Name"
-                value={name}
-                onChangeText={(v) => { setName(v); setLocalError(null); }}
-                placeholder="e.g. Muhammad Ibrahim"
+                label="First Name"
+                value={firstName}
+                onChangeText={(v) => { setFirstName(v); setLocalError(null); }}
+                placeholder="e.g. Muhammad"
                 autoCapitalize="words"
                 returnKeyType="next"
+                onSubmitEditing={() => surnameRef.current?.focus()}
               />
 
               <View style={styles.fieldGap} />
 
+              {/* Surname */}
+              <Input
+                label="Surname"
+                value={surname}
+                onChangeText={(v) => { setSurname(v); setLocalError(null); }}
+                placeholder="e.g. Ibrahim"
+                autoCapitalize="words"
+                returnKeyType="next"
+                onSubmitEditing={() => emailRef.current?.focus()}
+              />
+
+              <View style={styles.fieldGap} />
+
+              {/* Email */}
               <Input
                 label="Email Address"
                 value={email}

@@ -16,6 +16,23 @@ import { profileRouter }        from './features/profile/profile.routes';
 import { rulesAdminRouter }     from './features/rules/rules.routes';
 import { evidenceNavigationRouter, adminEvidenceNavigationRouter } from './features/evidence-navigation/evidence-navigation.routes';
 import { aiEvidenceRouter, adminAiEvidenceRouter } from './features/ai/evidence/ai-evidence.routes';
+import { evidenceRouter, adminEvidenceRouter } from './features/evidence/evidence.routes';
+import hijabRouter from './features/hijab/hijab.routes';
+import heirsRouter from './features/heirs/heirs.routes';
+import zakatCategoriesRouter from './features/zakat/zakat-categories.routes';
+import livestockRouter from './features/zakat/livestock/livestock.routes';
+import agricultureRouter from './features/zakat/agriculture/agriculture.routes';
+import { explanationsRouter } from './features/explanations/explanations.routes';
+import { currencyRouter } from './features/currency/currency.routes';
+import { resultsRouter } from './features/results/results.routes';
+import { sendError } from './shared/utils/response.utils';
+
+export const app = express();
+
+app.use(helmet());
+app.use(cors());
+app.use(express.json());
+app.use(morgan('dev'));
 
 // ── API Routes ────────────────────────────────────────────────────────────────
 app.use('/api/auth',          authRouter);

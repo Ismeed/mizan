@@ -24,6 +24,7 @@ export default function OTPScreen() {
   }>();
   const { verifyOtp, forgotPassword, resetPassword, isLoading, error } = useAuth();
   const { onboardingComplete } = useAuthStore();
+  // Note: navigation after OTP goes through splash screen, not directly to tabs
 
   const [otp,            setOtp]            = useState<string[]>(Array(OTP_LENGTH).fill(''));
   const [countdown,      setCountdown]      = useState(RESEND_WAIT);
@@ -113,12 +114,10 @@ export default function OTPScreen() {
       const ok = await verifyOtp(email, otpString);
       if (ok) {
         playSuccess();
+        // Navigate to splash which then transitions to Dashboard
+        // AuthGuard will route to onboarding if needed
         setTimeout(() => {
-          if (onboardingComplete) {
-            router.replace('/(tabs)');
-          } else {
-            router.replace('/(auth)/onboarding');
-          }
+          router.replace('/(auth)/splash');
         }, 1000);
       } else {
         shake();

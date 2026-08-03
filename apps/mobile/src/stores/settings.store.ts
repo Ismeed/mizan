@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { I18nManager } from 'react-native';
 import { apiClient } from '../services/api.client';
+import { preferenceService } from '../services/preference.service';
 
 export type MadhhabCode = 'MALIKI' | 'HANAFI' | 'SHAFII' | 'HANBALI' | 'JAFARI';
 export type CurrencyCode = 'NGN' | 'USD' | 'SAR' | 'AED' | 'GBP' | 'EUR';
@@ -129,9 +130,18 @@ async function saveSettingsLocally(state: SettingsState) {
 
 async function syncWithBackend(data: { madhhab?: string; currency?: string; language?: string }) {
   try {
-    await apiClient.patch('/auth/profile', data);
+    if (data.language) await preferenceService.updateLanguage(data.language);
+    if (data.madhhab)  await preferenceService.updateMadhhab(data.madhhab);
+    if (data.currency) await preferenceService.updateCurrency(data.currency);
   } catch {
     // Offline or unauthenticated — silently ignored as local storage is primary
+    // Preference change errors MUST NEVER revoke session
+  }
+
+  try {
+    await apiClient.patch('/auth/profile', data);
+  } catch {
+    // Express backend error — ignored, local storage & Supabase preference remain valid
   }
 }
 

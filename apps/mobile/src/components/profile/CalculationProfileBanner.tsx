@@ -105,7 +105,7 @@ const styles = StyleSheet.create({
   },
   settingValue: {
     fontSize: 13,
-    color: colors.text,
+    color: colors.white,
     fontFamily: typography.bodySemiBold,
     marginTop: 2,
   },
@@ -116,7 +116,7 @@ const styles = StyleSheet.create({
   changeButtonText: {
     fontSize: 12,
     color: colors.primary,
-    fontFamily: typography.bodyMedium,
+    fontFamily: typography.bodySemiBold,
     textDecorationLine: 'underline',
   },
 });

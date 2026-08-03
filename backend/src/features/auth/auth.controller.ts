@@ -123,8 +123,8 @@ export class AuthController {
   async refreshToken(req: Request, res: Response, next: NextFunction) {
     try {
       const userId       = (req as any).user.userId;
-      const authHeader   = req.headers.authorization ?? '';
-      const oldRefresh   = authHeader.startsWith('Bearer ') ? authHeader.slice(7) : undefined;
+      // refreshAuthMiddleware already validated this token and attached it
+      const oldRefresh   = (req as any).refreshToken as string | undefined;
       const result       = await service.refreshToken(userId, oldRefresh);
       sendSuccess(res, result);
     } catch (error: any) {

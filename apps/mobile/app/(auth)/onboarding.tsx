@@ -135,7 +135,8 @@ export default function OnboardingScreen() {
       currency:      selections.currency,
       notifications: selections.notifications === 'yes',
     });
-    router.replace('/(tabs)');
+    // Navigate to transition splash — it will then navigate to Dashboard
+    router.replace('/(auth)/splash');
   };
 
   return (

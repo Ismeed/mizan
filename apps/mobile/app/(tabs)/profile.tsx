@@ -44,9 +44,10 @@ export default function ProfileScreen() {
     }, 3000);
   };
 
-  const handleLogout = () => {
-    logout();
-    router.replace('/(auth)/login');
+  const handleLogout = async () => {
+    await logout();
+    // AuthGuard will redirect to /(auth) once status becomes UNAUTHENTICATED
+    router.replace('/(auth)');
   };
 
   const handleSelectLanguage = async (lang: LanguageCode) => {

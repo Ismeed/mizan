@@ -28,12 +28,16 @@ const NISAB: Record<LivestockType, number> = {
   camels: 5,
   cattle: 30,
   sheep:  40,
+  goats:  40,
+  sheepGoatCombined: 40,
 };
 
 const ANIMAL_LABELS: Record<LivestockType, string> = {
   camels: 'Camels',
   cattle: 'Cattle',
-  sheep:  'Sheep / Goats',
+  sheep:  'Sheep',
+  goats:  'Goats',
+  sheepGoatCombined: 'Sheep & Goats Combined',
 };
 
 /**
@@ -53,13 +57,11 @@ function computeLivestockDue(type: LivestockType, count: number): string {
     if (count < 76)  return '1 Jadha\'ah (4-year-old she-camel)';
     if (count < 91)  return '2 Bint Labun';
     if (count < 121) return '2 Hiqqah';
-    // Above 120: for every 40 = 1 Bint Labun; for every 50 = 1 Hiqqah
     return 'Consult a scholar (progressive scale above 120 camels)';
   }
 
   if (type === 'cattle') {
     if (count < 30) return 'None (below Nisab)';
-    // Every 30: 1 Tabi' (yearling); every 40: 1 Musinna (two-year-old)
     const sets30 = Math.floor(count / 30);
     const sets40 = Math.floor(count / 40);
     if (count % 30 === 0) return `${sets30} Tabi' (yearling cattle)`;
@@ -67,13 +69,12 @@ function computeLivestockDue(type: LivestockType, count: number): string {
     return `${Math.floor(count / 30)} Tabi' or ${Math.floor(count / 40)} Musinna (consult a scholar for exact mix)`;
   }
 
-  if (type === 'sheep') {
+  if (type === 'sheep' || type === 'goats' || type === 'sheepGoatCombined') {
     if (count < 40)   return 'None (below Nisab)';
-    if (count < 121)  return '1 Sheep';
-    if (count < 201)  return '2 Sheep';
-    if (count < 301)  return '3 Sheep';
-    // Above 300: 1 sheep per additional 100
-    return `${3 + Math.floor((count - 301) / 100) + 1} Sheep (progressive scale)`;
+    if (count < 121)  return '1 Sheep/Goat';
+    if (count < 201)  return '2 Sheep/Goats';
+    if (count < 301)  return '3 Sheep/Goats';
+    return `${3 + Math.floor((count - 301) / 100) + 1} Sheep/Goats (progressive scale)`;
   }
 
   return 'Consult a scholar';
@@ -87,7 +88,9 @@ function getExplanation(type: LivestockType, count: number, isEligible: boolean)
   const explanations: Record<LivestockType, string> = {
     camels: `With ${count} camels, Zakat is obligatory. The Zakat on camels follows a progressive Sunnah-prescribed schedule established by the Messenger ﷺ (Sahih Bukhari 1450). The due amount is expressed in animals, not monetary value.`,
     cattle: `With ${count} cattle, Zakat is due. The rule: for every 30 cattle, one yearling (Tabi'); for every 40, one two-year-old cow (Musinna). These thresholds are established in authenticated Hadith (Abu Dawud 1568).`,
-    sheep:  `With ${count} sheep or goats, Zakat is due. For 40–120 animals, 1 sheep is owed. The scale increases progressively with herd size according to the Sunnah narrated by Abu Bakr As-Siddiq (Sahih Bukhari 1450).`,
+    sheep:  `With ${count} sheep, Zakat is due. For 40–120 animals, 1 sheep is owed. The scale increases progressively with herd size according to the Sunnah (Sahih Bukhari 1450).`,
+    goats:  `With ${count} goats, Zakat is due. For 40–120 animals, 1 goat is owed. Goats share the same Nisab rules as sheep (Sahih Bukhari 1450).`,
+    sheepGoatCombined: `With ${count} combined sheep & goats, Zakat is due. Sunnah fiqh combines sheep and goats into a single flock for Nisab calculation (Sahih Bukhari 1450).`,
   };
 
   return explanations[type];

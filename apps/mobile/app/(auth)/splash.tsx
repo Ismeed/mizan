@@ -78,7 +78,9 @@ export default function SplashScreen() {
         useNativeDriver: true,
       }).start(() => {
         StatusBar.setHidden(false);
-        router.replace('/(auth)/onboarding');
+        // Transition to Dashboard — AuthGuard ensures only authenticated
+        // users with completed onboarding reach /(tabs)
+        router.replace('/(tabs)');
       });
     }, 2500);
 

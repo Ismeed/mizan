@@ -2,7 +2,7 @@ import { Router } from 'express';
 import { AuthController } from './auth.controller';
 import { validateRequest } from '../../shared/middleware/validate.middleware';
 import { authLimiter } from '../../shared/middleware/rate-limit.middleware';
-import { authMiddleware } from '../../shared/middleware/auth.middleware';
+import { authMiddleware, refreshAuthMiddleware } from '../../shared/middleware/auth.middleware';
 import {
   registerSchema,
   loginSchema,
@@ -39,8 +39,9 @@ router.post('/resend-verification', authLimiter, (req, res, next) => controller.
 router.post('/forgot-password',     authLimiter, validateRequest(forgotPasswordSchema), controller.forgotPassword.bind(controller));
 router.post('/reset-password',      authLimiter, validateRequest(resetPasswordSchema),  controller.resetPassword.bind(controller));
 
-// ── Protected routes ──────────────────────────────────────────────────────
-router.post('/refresh',  authMiddleware, controller.refreshToken.bind(controller));
+// ── Protected routes ──────────────────────────────────────────────────────────
+// /refresh uses refreshAuthMiddleware (validates refresh token, not expired access token)
+router.post('/refresh',  refreshAuthMiddleware, controller.refreshToken.bind(controller));
 router.get('/profile',   authMiddleware, controller.getProfile.bind(controller));
 router.patch('/profile', authMiddleware, validateRequest(updateProfileSchema), controller.updateProfile.bind(controller));
 

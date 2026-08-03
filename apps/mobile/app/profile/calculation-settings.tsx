@@ -144,7 +144,7 @@ const styles = StyleSheet.create({
   optionTitle: {
     fontFamily: typography.bodySemiBold,
     fontSize: 15,
-    color: colors.text,
+    color: colors.white,
   },
   optionDesc: {
     fontFamily: typography.body,
@@ -182,8 +182,8 @@ const styles = StyleSheet.create({
   },
   gridCode: {
     fontSize: 12,
-    color: colors.text,
-    fontFamily: typography.bodyMedium,
+    color: colors.white,
+    fontFamily: typography.bodySemiBold,
     marginTop: 2,
   },
   buttonContainer: {
@@ -196,7 +196,7 @@ const styles = StyleSheet.create({
   },
   secondaryButtonText: {
     color: colors.primary,
-    fontFamily: typography.bodyMedium,
+    fontFamily: typography.bodySemiBold,
     fontSize: 14,
     textDecorationLine: 'underline',
   },
