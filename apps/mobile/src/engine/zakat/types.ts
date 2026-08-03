@@ -6,7 +6,7 @@
  */
 
 export type IrrigationMethod = 'rain' | 'artificial' | 'mixed';
-export type LivestockType    = 'camels' | 'cattle' | 'sheep';
+export type LivestockType    = 'camels' | 'cattle' | 'sheep' | 'goats' | 'sheepGoatCombined';
 
 /**
  * Multi-livestock counts — a user may own multiple animal types simultaneously.
@@ -16,7 +16,10 @@ export interface LivestockCounts {
   camels: number;
   cattle: number;
   sheep:  number;
+  goats:  number;
+  sheepGoatCombined?: number;
 }
+
 
 export interface ZakatInput {
   cash:           number;

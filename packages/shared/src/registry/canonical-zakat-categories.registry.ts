@@ -228,11 +228,38 @@ export const BASELINE_CANONICAL_ZAKAT_CATEGORIES: ZakatCategoryEntityRecord[] = 
     ['LIVESTOCK', 'ALL_ZAKATABLE_ASSETS'],
   ),
   createBaselineCategory(
-    'LIVESTOCK_SHEEP_GOATS',
-    'Livestock — Sheep and Goats (Ghanam)',
+    'LIVESTOCK_SHEEP',
+    'Livestock — Sheep (Dha\'n)',
     'LIVESTOCK', 'UNITS', 'SHEEP_GOAT_COUNT', 'REQUIRED', false,
     ['LIVESTOCK', 'ALL_ZAKATABLE_ASSETS'],
   ),
+  createBaselineCategory(
+    'LIVESTOCK_GOATS',
+    'Livestock — Goats (Ma\'iz)',
+    'LIVESTOCK', 'UNITS', 'SHEEP_GOAT_COUNT', 'REQUIRED', false,
+    ['LIVESTOCK', 'ALL_ZAKATABLE_ASSETS'],
+  ),
+  createBaselineCategory(
+    'LIVESTOCK_SHEEP_GOATS',
+    'Livestock — Combined Sheep and Goats (Ghanam)',
+    'LIVESTOCK', 'UNITS', 'SHEEP_GOAT_COUNT', 'REQUIRED', false,
+    ['LIVESTOCK', 'ALL_ZAKATABLE_ASSETS'],
+  ),
+  createBaselineCategory(
+    'LIVESTOCK_MIXED_HERD',
+    'Livestock — Mixed Herd',
+    'LIVESTOCK', 'UNITS', 'MADHHAB_SPECIFIC', 'REQUIRED', false,
+    ['LIVESTOCK', 'ALL_ZAKATABLE_ASSETS'],
+    { inputSupportStatus: 'REVIEW_REQUIRED', scholarNotes: 'Mixed herd rules vary by madhhab. Scholar review required.' },
+  ),
+  createBaselineCategory(
+    'OTHER_LIVESTOCK_REVIEW_REQUIRED',
+    'Other Unclassified Livestock (Review Required)',
+    'LIVESTOCK', 'UNITS', 'MADHHAB_SPECIFIC', 'MADHHAB_SPECIFIC', false,
+    ['LIVESTOCK', 'ALL_ZAKATABLE_ASSETS'],
+    { inputSupportStatus: 'REVIEW_REQUIRED', scholarNotes: 'Unclassified livestock species requires scholar review.' },
+  ),
+
 
   // ── Income & Savings ────────────────────────────────────────────────────────
   createBaselineCategory(

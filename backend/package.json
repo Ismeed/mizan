@@ -21,8 +21,10 @@
     "knowledge:publish": "ts-node scripts/knowledge/publish.ts",
     "knowledge:audit": "ts-node scripts/knowledge/audit.ts",
     "knowledge:report": "ts-node scripts/knowledge/report.ts",
-    "profile:migrate": "ts-node scripts/migrate-profiles.ts"
+    "profile:migrate": "ts-node scripts/migrate-profiles.ts",
+    "livestock:validate": "ts-node scripts/livestock/validate-schedules.ts"
   },
+
   "dependencies": {
     "@google/generative-ai": "^0.21.0",
     "@prisma/client": "^5.22.0",

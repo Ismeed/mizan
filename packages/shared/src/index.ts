@@ -89,3 +89,11 @@ export * from './schemas/zod/zakat/canonical-zakat-category.schema';
 export * from './registry/canonical-zakat-categories.registry';
 export * from './registry/canonical-zakat-groups.registry';
 export * from './registry/zakat-legacy-alias.registry';
+
+// ─── Phase 9: Livestock Zakat Schedule and Obligation Rule Engine ───────────
+export * from './types/zakat/livestock';
+export * from './registry/livestock-animal-types.registry';
+export * from './registry/livestock-animal-classes.registry';
+export * from './registry/livestock-schedules.registry';
+export * from './schemas/zod/zakat/livestock-schedule.schema';
+

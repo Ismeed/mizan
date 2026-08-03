@@ -57,7 +57,11 @@ export type CanonicalZakatCategoryId =
   // ── Livestock ─────────────────────────────────────────────────────────────
   | 'LIVESTOCK_CAMELS'      // Camels (ibil)
   | 'LIVESTOCK_CATTLE'      // Cattle and buffalo (baqar)
-  | 'LIVESTOCK_SHEEP_GOATS' // Sheep and goats (ghanam)
+  | 'LIVESTOCK_SHEEP'       // Sheep (dha'n)
+  | 'LIVESTOCK_GOATS'       // Goats (ma'iz)
+  | 'LIVESTOCK_SHEEP_GOATS' // Combined sheep and goats (ghanam)
+  | 'LIVESTOCK_MIXED_HERD'  // Mixed livestock herd
+  | 'OTHER_LIVESTOCK_REVIEW_REQUIRED' // Unclassified livestock requiring scholar review
 
   // ── Rental & Property Income ─────────────────────────────────────────────
   | 'RENTAL_INCOME'         // Net rental income from property held for investment

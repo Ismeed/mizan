@@ -7,7 +7,10 @@ const DEFAULT_LIVESTOCK_COUNTS: LivestockCounts = {
   camels: 0,
   cattle: 0,
   sheep:  0,
+  goats:  0,
+  sheepGoatCombined: 0,
 };
+
 
 type LivestockAnimal = keyof LivestockCounts;
 

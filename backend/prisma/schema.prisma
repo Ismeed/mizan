@@ -2017,3 +2017,155 @@ model ZakatCategoryAuditEvent {
   @@index([category_id])
   @@map("zakat_category_audit_events")
 }
+
+// ─── Phase 9: Livestock Zakat Schedule Models ───────────────────────────────
+
+model LivestockSchedule {
+  id                        String                   @id @default(cuid())
+  schedule_id               String                   @unique
+  version                   String
+  schema_version            String
+  module                    String                   @default("ZAKAT")
+  rule_type                 String                   @default("ZAKAT_LIVESTOCK_SCHEDULE")
+  category_id               String
+  animal_type_id            String
+  rule_family_id            String
+  title_en                  String
+  title_ha                  String?
+  title_ar                  String?
+  madhhab_mode              String                   // SHARED | SELECTIVE | SINGLE_MADHHAB
+  applies_to_madhhabs       String[]
+  excluded_madhhabs         String[]
+  model_type                String                   // EXPLICIT_BANDS | REPEATING_PATTERN | COMBINATORIAL_PATTERN | HYBRID | REVIEW_REQUIRED
+  stage                     String                   @default("LIVESTOCK_SCHEDULE_RESOLUTION")
+  priority                  Int                      @default(100)
+  is_terminal               Boolean                  @default(true)
+  evidence_ids              String[]
+  fiqh_reference_ids        String[]
+  explanation_ids           String[]
+  status                    String                   // DRAFT | ACADEMIC_REVIEW | SHARIA_REVIEW | TECHNICAL_VALIDATION | APPROVED | PRODUCTION
+  is_test_fixture           Boolean                  @default(false)
+  fixture_tag               String?
+  effective_from            DateTime?
+  effective_until           DateTime?
+  content_checksum          String
+  created_at                DateTime                 @default(now())
+  created_by                String
+  updated_at                DateTime                 @updatedAt
+  updated_by                String
+
+  bands                     LivestockScheduleBand[]
+  patterns                  LivestockSchedulePattern[]
+
+  @@map("livestock_schedules")
+}
+
+model LivestockScheduleBand {
+  id                        String            @id @default(cuid())
+  band_id                   String            @unique
+  schedule_db_id            String
+  schedule                  LivestockSchedule @relation(fields: [schedule_db_id], references: [id], onDelete: Cascade)
+  sequence                  Int
+  minimum_count             Int
+  maximum_count             Int?
+  minimum_inclusive         Boolean           @default(true)
+  maximum_inclusive         Boolean           @default(true)
+  is_open_ended             Boolean           @default(false)
+  obligation_definition_id  String
+  explanation_ids           String[]
+  status                    String            @default("DRAFT")
+  is_test_fixture           Boolean           @default(false)
+  fixture_tag               String?
+
+  @@map("livestock_schedule_bands")
+}
+
+model LivestockSchedulePattern {
+  id                        String            @id @default(cuid())
+  pattern_id                String            @unique
+  schedule_db_id            String
+  schedule                  LivestockSchedule @relation(fields: [schedule_db_id], references: [id], onDelete: Cascade)
+  version                   String
+  minimum_count             Int
+  maximum_count             Int?
+  resolution_policy_type    String
+  tie_break_policy_id       String?
+  remainder_policy_id       String?
+  status                    String            @default("DRAFT")
+
+  @@map("livestock_schedule_patterns")
+}
+
+model LivestockObligationDefinition {
+  id                        String   @id @default(cuid())
+  obligation_definition_id  String   @unique
+  version                   String
+  obligation_type           String   // NONE | ANIMAL_DUE | MULTIPLE_ANIMALS_DUE | ALTERNATIVE_ANIMAL_OPTIONS | COMBINATION_DUE | MONETARY_EQUIVALENT | REVIEW_REQUIRED
+  animal_obligations_json   Json
+  alternative_options_json  Json?
+  monetary_alternative_json Json?
+  evidence_ids              String[]
+  explanation_ids           String[]
+  status                    String   @default("DRAFT")
+  is_test_fixture           Boolean  @default(false)
+  fixture_tag               String?
+
+  @@map("livestock_obligation_definitions")
+}
+
+model LivestockAnimalClass {
+  id                       String   @id @default(cuid())
+  animal_class_id          String   @unique
+  version                  String
+  animal_type_id           String
+  age_basis                String
+  minimum_age              Float?
+  maximum_age              Float?
+  age_unit                 String
+  sex_requirement          String
+  title_en                 String
+  title_ha                 String?
+  title_ar                 String?
+  source_term_ar           String
+  evidence_ids             String[]
+  status                   String   @default("DRAFT")
+  is_test_fixture          Boolean  @default(false)
+  fixture_tag              String?
+
+  @@map("livestock_animal_classes")
+}
+
+model LivestockResolutionSnapshot {
+  id                       String   @id @default(cuid())
+  snapshot_id              String   @unique
+  calculation_id           String
+  calculation_profile_id   String
+  asset_instance_id        String
+  selected_madhhab         String
+  input_facts_checksum     String
+  schedule_id              String
+  schedule_version         String
+  matched_band_id          String?
+  matched_pattern_id       String?
+  obligation_definition_id String
+  resolution_checksum      String
+  created_at               DateTime @default(now())
+  is_immutable             Boolean  @default(true)
+
+  @@index([calculation_id])
+  @@map("livestock_resolution_snapshots")
+}
+
+model LivestockExecutionTrace {
+  id                String   @id @default(cuid())
+  trace_id          String   @unique
+  calculation_id    String
+  asset_instance_id String
+  steps_json        Json
+  executed_at       DateTime @default(now())
+
+  @@index([calculation_id])
+  @@map("livestock_execution_traces")
+}
+
+}

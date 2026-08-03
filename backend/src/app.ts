@@ -18,6 +18,7 @@ import { evidenceRouter, adminEvidenceRouter } from './features/evidence/evidenc
 import hijabRouter from './features/hijab/hijab.routes';
 import heirsRouter from './features/heirs/heirs.routes';
 import zakatCategoriesRouter from './features/zakat/zakat-categories.routes';
+import livestockRouter from './features/zakat/livestock/livestock.routes';
 import { apiLimiter }        from './shared/middleware/rate-limit.middleware';
 import { sendError }         from './shared/utils/response.utils';
 
@@ -27,6 +28,7 @@ const app = express();
 app.use(helmet());
 app.use(cors({ origin: process.env.ALLOWED_ORIGINS?.split(',') ?? '*' }));
 app.use(express.json({ limit: '10mb' }));
+app.use(express.urlencoded({ extended: true }));
 app.use(morgan(process.env.NODE_ENV === 'production' ? 'combined' : 'dev'));
 
 // ── Global Rate Limiter ───────────────────────────────────────────────────────
@@ -54,6 +56,8 @@ app.use('/api/admin',         adminRouter);
 app.use('/api/hijab',         hijabRouter);
 app.use('/api/mirath/heirs',  heirsRouter);
 app.use('/api/zakat/categories', zakatCategoriesRouter);
+app.use('/api/zakat/livestock', livestockRouter);
+
 
 // ── 404 Handler ───────────────────────────────────────────────────────────────
 app.use((_req, res) => {
