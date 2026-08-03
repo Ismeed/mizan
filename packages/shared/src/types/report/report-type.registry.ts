@@ -1,0 +1,15 @@
+/**
+ * MIZAN — Standard Report Types Registry (Phase 14)
+ */
+
+export const CANONICAL_REPORT_TYPES = [
+  'SUMMARY_REPORT',
+  'DETAILED_REPORT',
+  'SCHOLAR_REVIEW_REPORT',
+  'TECHNICAL_AUDIT_REPORT',
+  'HISTORICAL_REPORT',
+  'TRANSLATED_HISTORICAL_REPORT',
+  'ALTERNATIVE_CURRENCY_REPORT',
+] as const;
+
+export type ReportType = (typeof CANONICAL_REPORT_TYPES)[number];

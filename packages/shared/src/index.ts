@@ -97,3 +97,44 @@ export * from './registry/livestock-animal-classes.registry';
 export * from './registry/livestock-schedules.registry';
 export * from './schemas/zod/zakat/livestock-schedule.schema';
 
+// ─── Phase 10: Agriculture Zakat Rule and Harvest Calculation Engine ───────
+export * from './types/zakat/agriculture';
+export * from './registry/agriculture-produce-types.registry';
+export * from './registry/agriculture-nisab.registry';
+export * from './registry/agriculture-rates.registry';
+export * from './registry/agriculture-aggregation-policies.registry';
+export * from './registry/agriculture-measurement-units.registry';
+export * from './schemas/zod/zakat/agriculture-rule.schema';
+
+// ─── Phase 11: Multilingual Explanation and Localization System ────────────
+export * from './types/explanation';
+export * from './registry/languages.registry';
+export * from './registry/terminology.registry';
+export * from './registry/explanation-variable-definitions.registry';
+export * from './registry/explanation-type-metadata.registry';
+export * from './registry/language-fallback-policies.registry';
+export * from './registry/fraction-formatting-policies.registry';
+export * from './schemas/zod/explanation/explanation-record.schema';
+export * from './schemas/zod/explanation/explanation-translation.schema';
+
+// ─── Phase 12: Currency, Monetary Value and Exchange-Rate Architecture ─────
+export * from './types/currency';
+export * from './registry/currencies.registry';
+export * from './registry/rounding-policies.registry';
+export * from './registry/remainder-policies.registry';
+export * from './registry/valuation-date-policies.registry';
+export * from './schemas/zod/currency/currency-definition.schema';
+export * from './schemas/zod/currency/money.schema';
+
+// ─── Phase 13: Standard Calculation Result Contract ───────────────────────
+export * from './types/result';
+
+// ─── Phase 14: Standard Mirath and Zakat Report Architecture ──────────────
+export * from './types/report';
+
+// ─── Phase 15: Clickable Evidence and AI Assistant Navigation Standard ─────
+export * from './types/navigation';
+
+// ─── Phase 16: MIZAN Verified AI Evidence Context Contract ─────────────────
+export * from './types/ai-evidence';
+

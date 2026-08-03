@@ -141,7 +141,7 @@ model ZakatCalculation {
   hawl_start_date   DateTime?
 
   assets            ZakatAsset[]
-  /** Phase 8: Canonical category asset instances keyed by CanonicalZakatCategoryId */
+  // Phase 8: Canonical category asset instances keyed by CanonicalZakatCategoryId
   asset_instances   ZakatAssetInstance[]
 
   @@map("zakat_calculations")
@@ -2168,4 +2168,1828 @@ model LivestockExecutionTrace {
   @@map("livestock_execution_traces")
 }
 
+// ─── Phase 10: Agriculture Zakat Models ──────────────────────────────────────
+
+model AgricultureProduceTypeRecord {
+  id                String   @id @default(cuid())
+  produce_type_id   String   @unique
+  version           String
+  category          String
+  canonical_name    String
+  arabic_term       String
+  storable          Boolean  @default(true)
+  governance_status String   @default("PRODUCTION")
+  created_at        DateTime @default(now())
+  updated_at        DateTime @updatedAt
+
+  @@map("agriculture_produce_types")
 }
+
+model AgricultureNisabRecord {
+  id                 String   @id @default(cuid())
+  nisab_id           String   @unique
+  version            String
+  produce_type_scope Json
+  madhhab_scope      Json
+  model_type         String
+  threshold_num      BigInt
+  threshold_den      BigInt
+  unit               String
+  is_test_fixture    Boolean  @default(true)
+  fixture_tag        String?  @default("TEST_ONLY_FIXTURE")
+  created_at         DateTime @default(now())
+
+  @@map("agriculture_nisab_records")
+}
+
+model AgricultureRateRecord {
+  id                String   @id @default(cuid())
+  rate_id           String   @unique
+  version           String
+  madhhab_scope     Json
+  irrigation_method String
+  rate_num          BigInt
+  rate_den          BigInt
+  is_test_fixture   Boolean  @default(true)
+  fixture_tag       String?  @default("TEST_ONLY_FIXTURE")
+  created_at        DateTime @default(now())
+
+  @@map("agriculture_rate_records")
+}
+
+model AgricultureAggregationPolicy {
+  id              String   @id @default(cuid())
+  policy_id       String   @unique
+  version         String
+  madhhab_scope   Json
+  scope           String
+  description     String
+  is_test_fixture Boolean  @default(true)
+  fixture_tag     String?  @default("TEST_ONLY_FIXTURE")
+  created_at      DateTime @default(now())
+
+  @@map("agriculture_aggregation_policies")
+}
+
+model AgricultureMeasurementUnit {
+  id              String   @id @default(cuid())
+  unit_id         String   @unique
+  canonical_name  String
+  arabic_term     String
+  is_volume_based Boolean  @default(false)
+  is_weight_based Boolean  @default(false)
+
+  @@map("agriculture_measurement_units")
+}
+
+model AgricultureUnitConversion {
+  id              String   @id @default(cuid())
+  conversion_id   String   @unique
+  from_unit       String
+  to_unit         String
+  factor_num      BigInt
+  factor_den      BigInt
+  is_test_fixture Boolean  @default(true)
+
+  @@map("agriculture_unit_conversions")
+}
+
+model AgricultureResolutionSnapshot {
+  id                   String   @id @default(cuid())
+  snapshot_id          String   @unique
+  calculation_id       String
+  asset_instance_id    String
+  produce_type_id      String
+  nisab_record_id      String
+  rate_record_id       String
+  applied_madhhab      String
+  input_checksum       String
+  result_checksum      String
+  created_at           DateTime @default(now())
+
+  @@index([calculation_id])
+  @@map("agriculture_resolution_snapshots")
+}
+
+model AgricultureExecutionTrace {
+  id                String   @id @default(cuid())
+  trace_id          String   @unique
+  calculation_id    String
+  asset_instance_id String
+  steps_json        Json
+  executed_at       DateTime @default(now())
+
+  @@index([calculation_id])
+  @@map("agriculture_execution_traces")
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// PHASE 11 — MULTILINGUAL EXPLANATION & LOCALIZATION SYSTEM
+// ══════════════════════════════════════════════════════════════════════════════
+
+model ExplanationRecordDb {
+  id                      String   @id @default(cuid())
+  explanation_id          String
+  version                 String
+  schema_version          String   @default("1.0.0")
+  module                  String
+  explanation_type        String
+  topic                   String
+  subtopic                String?
+  relationships_json      Json
+  madhhab_scope_json      Json
+  content_json            Json
+  variables_json          Json
+  display_json            Json
+  references_json         Json
+  governance_status       String   @default("DRAFT")
+  review_metadata_json    Json?
+  effective_from          DateTime?
+  effective_until         DateTime?
+  content_checksum        String   @db.VarChar(64)
+  is_test_fixture         Boolean  @default(true)
+  created_by              String
+  created_at              DateTime @default(now())
+  updated_by              String
+  updated_at              DateTime @updatedAt
+
+  @@unique([explanation_id, version])
+  @@index([explanation_id])
+  @@index([module, explanation_type])
+  @@map("explanation_records")
+}
+
+model ExplanationVersionDb {
+  id             String   @id @default(cuid())
+  explanation_id String
+  version        String
+  record_json    Json
+  checksum       String
+  created_at     DateTime @default(now())
+
+  @@unique([explanation_id, version])
+  @@map("explanation_versions")
+}
+
+model ExplanationTranslationDb {
+  id                   String   @id @default(cuid())
+  explanation_id       String
+  explanation_version  String
+  language_tag         String
+  locale               String
+  direction            String   @default("LTR")
+  content_json         Json
+  terminology_version  String   @default("1.0.0")
+  translation_type     String
+  translated_by_json   Json
+  reviewed_by_json     Json
+  reviewed_at          DateTime?
+  source_language_tag  String   @default("en")
+  translation_status   String   @default("DRAFT")
+  governance_stage     String?
+  translation_checksum String   @db.VarChar(64)
+  is_test_fixture      Boolean  @default(true)
+  created_at           DateTime @default(now())
+  updated_at           DateTime @updatedAt
+
+  @@unique([explanation_id, explanation_version, language_tag])
+  @@index([explanation_id, language_tag])
+  @@map("explanation_translations")
+}
+
+model ExplanationTranslationVersionDb {
+  id                   String   @id @default(cuid())
+  explanation_id       String
+  explanation_version  String
+  language_tag         String
+  version              String
+  translation_json     Json
+  checksum             String
+  created_at           DateTime @default(now())
+
+  @@map("explanation_translation_versions")
+}
+
+model ExplanationFamilyDb {
+  id                    String   @id @default(cuid())
+  explanation_family_id String   @unique
+  shared_explanation_id String
+  madhhab_overrides_json Json
+  description           String
+  created_at            DateTime @default(now())
+
+  @@map("explanation_families")
+}
+
+model ExplanationRuleLinkDb {
+  id             String   @id @default(cuid())
+  explanation_id String
+  rule_id        String
+  rule_version   String
+  created_at     DateTime @default(now())
+
+  @@unique([explanation_id, rule_id, rule_version])
+  @@map("explanation_rule_links")
+}
+
+model ExplanationEvidenceLinkDb {
+  id             String   @id @default(cuid())
+  explanation_id String
+  evidence_id    String
+  evidence_version String
+  created_at     DateTime @default(now())
+
+  @@unique([explanation_id, evidence_id, evidence_version])
+  @@map("explanation_evidence_links")
+}
+
+model ExplanationVariableDefinitionDb {
+  id                   String   @id @default(cuid())
+  variable_id          String   @unique
+  value_type           String
+  source_path          String
+  required             Boolean  @default(true)
+  formatting_policy_id String
+  allowed_sources_json Json
+  fallback_behaviour   String   @default("FAIL_RENDERING")
+  description          String
+  created_at           DateTime @default(now())
+
+  @@map("explanation_variable_definitions")
+}
+
+model ExplanationTemplateDb {
+  id             String   @id @default(cuid())
+  explanation_id String
+  language_tag   String
+  display_mode   String
+  template_text  String   @db.Text
+  is_valid       Boolean  @default(true)
+  created_at     DateTime @default(now())
+
+  @@unique([explanation_id, language_tag, display_mode])
+  @@map("explanation_templates")
+}
+
+model ExplanationRenderingDb {
+  id                     String   @id @default(cuid())
+  render_id              String   @unique
+  explanation_id         String
+  explanation_version    String
+  requested_language_tag String
+  resolved_language_tag  String
+  locale                 String
+  direction              String
+  selected_madhhab       String
+  rendered_content_json  Json
+  rendered_variables_json Json
+  fallback_used          Boolean  @default(false)
+  fallback_reason        String?
+  rendered_checksum      String   @db.VarChar(64)
+  created_at             DateTime @default(now())
+
+  @@index([explanation_id, resolved_language_tag])
+  @@map("explanation_renderings")
+}
+
+model ExplanationSnapshotDb {
+  id                      String   @id @default(cuid())
+  snapshot_id             String   @unique
+  calculation_id          String
+  result_item_id          String
+  explanation_id          String
+  explanation_version     String
+  language_tag            String
+  locale                  String
+  rendered_content_json   Json
+  variable_values_json    Json
+  evidence_versions_json  Json
+  selected_madhhab        String
+  knowledge_release_version String
+  rendered_checksum       String   @db.VarChar(64)
+  is_immutable            Boolean  @default(true)
+  created_at              DateTime @default(now())
+
+  @@index([calculation_id])
+  @@map("explanation_snapshots")
+}
+
+model LanguageDefinitionDb {
+  id                        String   @id @default(cuid())
+  language_tag              String   @unique
+  version                   String   @default("1.0.0")
+  names_json                Json
+  default_locale            String
+  direction                 String   @default("LTR")
+  status                    String   @default("ACTIVE")
+  fallback_language_tag     String   @default("en")
+  required_coverage_json    Json
+  governance_status         String   @default("PRODUCTION")
+  created_at                DateTime @default(now())
+
+  @@map("canonical_language_definitions")
+}
+
+model LanguageVersionDb {
+  id           String   @id @default(cuid())
+  language_tag String
+  version      String
+  definition_json Json
+  created_at   DateTime @default(now())
+
+  @@unique([language_tag, version])
+  @@map("language_versions")
+}
+
+model LocaleDefinitionDb {
+  id                    String   @id @default(cuid())
+  locale                String   @unique
+  language_tag          String
+  country_code          String
+  display_name          String
+  date_format           String
+  number_grouping_sep   String
+  decimal_sep           String
+  default_currency      String
+  created_at            DateTime @default(now())
+
+  @@map("locale_definitions")
+}
+
+model TerminologyRecordDb {
+  id                         String   @id @default(cuid())
+  term_id                    String   @unique
+  version                    String   @default("1.0.0")
+  domain                     String
+  canonical_concept          String
+  terms_json                 Json
+  definition_explanation_id String?
+  madhhab_scope_json         Json
+  governance_status          String   @default("DRAFT")
+  created_at                 DateTime @default(now())
+
+  @@map("terminology_records")
+}
+
+model TerminologyVersionDb {
+  id          String   @id @default(cuid())
+  term_id     String
+  version     String
+  record_json Json
+  created_at  DateTime @default(now())
+
+  @@unique([term_id, version])
+  @@map("terminology_versions")
+}
+
+model TranslationReviewDb {
+  id                   String   @id @default(cuid())
+  review_id            String   @unique
+  explanation_id       String
+  language_tag         String
+  reviewer_id          String
+  stage                String
+  decision             String
+  comments             String?  @db.Text
+  reviewed_at          DateTime @default(now())
+
+  @@map("translation_reviews")
+}
+
+model TranslationAssignmentDb {
+  id             String   @id @default(cuid())
+  assignment_id  String   @unique
+  explanation_id String
+  language_tag   String
+  translator_id  String
+  status         String   @default("ASSIGNED")
+  assigned_at    DateTime @default(now())
+  completed_at   DateTime?
+
+  @@map("translation_assignments")
+}
+
+model TranslationCoverageRecordDb {
+  id                      String   @id @default(cuid())
+  language_tag            String   @unique
+  total_required          Int
+  approved_translations   Int
+  missing_translations    Int
+  draft_translations      Int
+  coverage_percentage_num BigInt
+  coverage_percentage_den BigInt
+  production_blockers_json Json
+  computed_at             DateTime @default(now())
+
+  @@map("translation_coverage_records")
+}
+
+model TranslationFallbackPolicyDb {
+  id                               String   @id @default(cuid())
+  policy_id                        String   @unique
+  primary_language_tag             String
+  fallback_chain_json              Json
+  allow_machine_translation_fallback Boolean @default(false)
+  created_at                       DateTime @default(now())
+
+  @@map("translation_fallback_policies")
+}
+
+model ExplanationValidationResultDb {
+  id             String   @id @default(cuid())
+  explanation_id String
+  version        String
+  is_valid       Boolean
+  errors_json    Json
+  validated_at   DateTime @default(now())
+
+  @@map("explanation_validation_results")
+}
+
+model ExplanationAuditEventDb {
+  id             String   @id @default(cuid())
+  event_id       String   @unique
+  event_type     String
+  explanation_id String
+  language_tag   String?
+  actor_id       String
+  details_json   Json
+  timestamp      DateTime @default(now())
+
+  @@map("explanation_audit_events")
+}
+
+// ─── Phase 12: Currency, Monetary Value and Exchange-Rate Architecture ─────
+
+model CurrencyDefinitionDb {
+  id                    String   @id @default(cuid())
+  currency_code         String   @unique // ISO 4217 uppercase 3-letter (e.g. NGN, USD)
+  version               String
+  schema_version        String   @default("1.0.0")
+  currency_type         String   // "FIAT", "COMMODITY_LINKED", etc.
+  numeric_code          String?
+  names_json            Json     // Localized names { en: { singular, plural }, ha: ..., ar: ... }
+  symbol_default        String
+  symbol_narrow         String
+  symbol_position_policy String  @default("LOCALE_CONTROLLED")
+  minor_unit_digits     Int      @default(2)
+  cash_digits           Int      @default(2)
+  accounting_digits     Int      @default(2)
+  supports_minor_units  Boolean  @default(true)
+  primary_country_codes String[] // Array of 2-letter country codes e.g. ["NG"]
+  default_locale        String   @default("en-NG")
+  input_enabled         Boolean  @default(true)
+  calculation_enabled   Boolean  @default(true)
+  conversion_enabled    Boolean  @default(true)
+  reporting_enabled     Boolean  @default(true)
+  status                String   @default("APPROVED") // DRAFT, FINANCIAL_DATA_REVIEW, TECHNICAL_VALIDATION, APPROVED, PRODUCTION, DEPRECATED, RETIRED
+  effective_from        DateTime?
+  effective_until       DateTime?
+  content_checksum      String
+  created_at            DateTime @default(now())
+  updated_at            DateTime @updatedAt
+
+  @@map("canonical_currency_definitions")
+}
+
+model CurrencyLocalizationDb {
+  id            String   @id @default(cuid())
+  currency_code String
+  language_tag  String
+  singular_name String
+  plural_name   String
+  symbol        String
+  created_at    DateTime @default(now())
+
+  @@unique([currency_code, language_tag])
+  @@map("currency_localizations")
+}
+
+model ExchangeRateProviderDb {
+  id                        String   @id @default(cuid())
+  provider_id               String   @unique
+  version                   String
+  name                      String
+  provider_type             String   // CENTRAL_BANK, COMMERCIAL_PROVIDER, INSTITUTIONAL_SOURCE, MANUAL_APPROVED_SOURCE
+  supported_currencies_json Json
+  historical_rates_supported Boolean @default(true)
+  licence_status            String   @default("ACTIVE")
+  availability_status       String   @default("ACTIVE") // ACTIVE, SUSPENDED, DEPRECATED
+  max_rate_age_hours        Int      @default(24)
+  fallback_allowed          Boolean  @default(false)
+  status                    String   @default("APPROVED")
+  created_at                DateTime @default(now())
+
+  @@map("exchange_rate_providers")
+}
+
+model ExchangeRatePolicyDb {
+  id                    String   @id @default(cuid())
+  rate_policy_id        String   @unique
+  version               String
+  source_priority_json  Json     // Array of provider IDs
+  fallback_mode         String   // NO_FALLBACK, NEXT_APPROVED_PROVIDER, MANUAL_APPROVED_RATE, REVIEW_REQUIRED
+  date_policy           String   // VALUATION_DATE, CALCULATION_DATE, USER_SELECTED_APPROVED_DATE
+  max_age_hours         Int      @default(24)
+  weekend_policy        String   @default("USE_LAST_BUSINESS_DAY")
+  holiday_policy        String   @default("USE_LAST_BUSINESS_DAY")
+  status                String   @default("APPROVED")
+  created_at            DateTime @default(now())
+
+  @@map("exchange_rate_policies")
+}
+
+model ExchangeRateSnapshotDb {
+  id                     String   @id @default(cuid())
+  snapshot_id            String   @unique
+  source_currency_code   String
+  target_currency_code   String
+  rate_value             String   // Exact decimal string e.g. "1500.00000000"
+  rate_direction         String   @default("TARGET_UNITS_PER_SOURCE_UNIT")
+  rate_date              DateTime
+  retrieved_at           DateTime @default(now())
+  provider_id            String
+  provider_rate_id       String?
+  source_type            String   // OFFICIAL, LICENSED_PROVIDER, MANUAL_APPROVED_ENTRY, HISTORICAL_ARCHIVE
+  rate_policy_id         String
+  rate_policy_version    String
+  provider_payload_hash  String?
+  snapshot_checksum      String
+  is_immutable           Boolean  @default(true)
+  created_at             DateTime @default(now())
+
+  @@map("exchange_rate_snapshots")
+}
+
+model CrossRateSnapshotDb {
+  id                          String   @id @default(cuid())
+  cross_rate_snapshot_id      String   @unique
+  source_currency_code        String
+  intermediate_currency_code  String
+  target_currency_code        String
+  legs_json                   Json
+  cross_rate_value            String   // Exact decimal string
+  policy_id                   String
+  checksum                    String
+  created_at                  DateTime @default(now())
+
+  @@map("cross_rate_snapshots")
+}
+
+model ManualRateEntryDb {
+  id                    String   @id @default(cuid())
+  entry_id              String   @unique
+  source_currency_code  String
+  target_currency_code  String
+  rate_value            String
+  rate_direction        String   @default("TARGET_UNITS_PER_SOURCE_UNIT")
+  rate_date             DateTime
+  source_document_id    String?
+  source_description    String
+  entered_by            String
+  approved_by_json      Json     // Array of reviewer IDs
+  approval_status       String   @default("DRAFT") // DRAFT, APPROVED, REJECTED
+  reason                String
+  checksum              String
+  created_at            DateTime @default(now())
+
+  @@map("manual_rate_entries")
+}
+
+model ValuationDatePolicyDb {
+  id                        String   @id @default(cuid())
+  valuation_date_policy_id  String   @unique
+  version                   String
+  usage_scope               String   // MIRATH_ESTATE, ZAKAT_CALCULATION, HISTORICAL_REPORT, MONETARY_EQUIVALENT
+  date_basis                String   // DATE_OF_DEATH, CALCULATION_DATE, ZAKAT_ASSESSMENT_DATE, HARVEST_DATE, etc.
+  timezone_policy           String   @default("UTC")
+  madhhab_scope_json        Json     // Array of madhhab codes
+  status                    String   @default("APPROVED")
+  created_at                DateTime @default(now())
+
+  @@map("valuation_date_policies")
+}
+
+model MarketPriceProviderDb {
+  id                  String   @id @default(cuid())
+  provider_id         String   @unique
+  data_type           String   // PRECIOUS_METALS, SECURITIES, AGRICULTURE_PRODUCE, LIVESTOCK
+  coverage_json       Json
+  licence_status      String   @default("ACTIVE")
+  availability_status String   @default("ACTIVE")
+  created_at          DateTime @default(now())
+
+  @@map("market_price_providers")
+}
+
+model MarketPriceSnapshotDb {
+  id                    String   @id @default(cuid())
+  snapshot_id           String   @unique
+  provider_id           String
+  asset_identifier      String   // e.g. "GOLD_GRAM_24K", "SILVER_GRAM_999"
+  price_amount_minor    String   // Exact integer string
+  currency_code         String
+  minor_unit_digits     Int      @default(2)
+  price_date            DateTime
+  retrieved_at          DateTime @default(now())
+  checksum              String
+
+  @@map("market_price_snapshots")
+}
+
+model NisabValuationSnapshotDb {
+  id                            String   @id @default(cuid())
+  nisab_valuation_snapshot_id   String   @unique
+  nisab_method_rule_id          String
+  reference_asset_id            String   // "GOLD" or "SILVER"
+  reference_quantity_value      String   // e.g. "85", "595"
+  reference_quantity_unit       String   // "GRAMS"
+  unit_price_snapshot_id        String
+  nisab_amount_minor            String
+  currency_code                 String
+  valuation_date                DateTime
+  selected_madhhab              String
+  checksum                      String
+  created_at                    DateTime @default(now())
+
+  @@map("nisab_valuation_snapshots")
+}
+
+model AssetValuationSnapshotDb {
+  id                            String   @id @default(cuid())
+  valuation_snapshot_id         String   @unique
+  asset_instance_id             String
+  category_id                   String
+  valuation_method_rule_id      String
+  valuation_method_rule_version String   @default("1.0.0")
+  quantity_value                String?
+  quantity_unit                 String?
+  unit_price_amount_minor       String?
+  unit_price_currency           String?
+  total_value_amount_minor      String   // Exact integer string
+  total_value_currency          String
+  valuation_date                DateTime
+  source_id                     String
+  source_type                   String   // MARKET_PROVIDER, DOCUMENTED_APPRAISAL, USER_DECLARED_VALUE, MANUAL_APPROVED_SOURCE
+  selected_madhhab              String
+  knowledge_release_version     String
+  checksum                      String
+  is_immutable                  Boolean  @default(true)
+  created_at                    DateTime @default(now())
+
+  @@map("asset_valuation_snapshots")
+}
+
+model MonetaryRoundingPolicyDb {
+  id                          String   @id @default(cuid())
+  rounding_policy_id          String   @unique
+  version                     String
+  usage_scope_json            Json     // Array of scopes
+  method                      String   // ROUND_HALF_UP, ROUND_HALF_EVEN, etc.
+  precision_source            String   // CURRENCY_MINOR_UNITS, POLICY_DEFINED_SCALE
+  policy_defined_scale        Int?
+  preserve_unrounded_value    Boolean  @default(true)
+  remainder_policy_id         String?
+  status                      String   @default("APPROVED")
+  created_at                  DateTime @default(now())
+
+  @@map("monetary_rounding_policies")
+}
+
+model MonetaryRemainderPolicyDb {
+  id                    String   @id @default(cuid())
+  remainder_policy_id   String   @unique
+  version               String
+  policy_type           String   // LARGEST_REMAINDER, DISTRIBUTE_BY_APPROVED_PRIORITY, RETAIN_AS_UNALLOCATED, MANUAL_SETTLEMENT
+  conditions_json       Json?
+  madhhab_scope_json    Json
+  explanation_ids_json  Json
+  status                String   @default("APPROVED")
+  created_at            DateTime @default(now())
+
+  @@map("monetary_remainder_policies")
+}
+
+model CalculationCurrencyContextDb {
+  id                        String   @id @default(cuid())
+  currency_context_id       String   @unique
+  calculation_id            String
+  calculation_profile_id    String
+  preferred_currency_code   String
+  calculation_currency_code String
+  report_currency_code      String
+  currency_mode             String   // SINGLE_CURRENCY, MULTI_CURRENCY, CONSOLIDATED, HYBRID
+  currency_registry_version String   @default("1.0.0")
+  exchange_rate_policy_ver  String   @default("1.0.0")
+  rounding_policy_version   String   @default("1.0.0")
+  valuation_date_policy_id  String
+  created_at                DateTime @default(now())
+  frozen_at                 DateTime?
+  checksum                  String
+  is_immutable              Boolean  @default(true)
+
+  @@map("calculation_currency_contexts")
+}
+
+model MoneyValueDb {
+  id                    String   @id @default(cuid())
+  currency_code         String
+  representation_type   String   @default("MINOR_UNITS") // MINOR_UNITS, ARBITRARY_PRECISION_DECIMAL
+  amount_minor          String   // Exact integer string
+  decimal_amount        String   // Decimal string e.g. "2500000.00"
+  minor_unit_digits     Int      @default(2)
+  created_at            DateTime @default(now())
+
+  @@map("money_values")
+}
+
+model MoneyConversionDb {
+  id                       String   @id @default(cuid())
+  conversion_request_id    String   @unique
+  calculation_id           String?
+  source_currency_code     String
+  source_amount_minor      String
+  target_currency_code     String
+  target_amount_minor      String
+  unrounded_target_decimal String
+  exchange_rate_snapshot_id String
+  rounding_policy_id       String
+  conversion_purpose       String   // ESTATE_CONSOLIDATION, ZAKAT_ASSET_AGGREGATION, REPORT_RENDERING, etc.
+  valuation_date           DateTime
+  created_at               DateTime @default(now())
+
+  @@map("money_conversions")
+}
+
+model CurrencyConversionTraceDb {
+  id                    String   @id @default(cuid())
+  trace_id              String   @unique
+  conversion_request_id String
+  steps_json            Json
+  checksum              String
+  created_at            DateTime @default(now())
+
+  @@map("currency_conversion_traces")
+}
+
+model MirathMoneyAllocationDb {
+  id                            String   @id @default(cuid())
+  calculation_id                String
+  heir_id                       String
+  heir_type                     String
+  count                         Int
+  share_numerator               Int
+  share_denominator             Int
+  unrounded_allocation_decimal  String
+  final_amount_minor            String
+  currency_code                 String
+  rounding_adjustment_minor     String   @default("0")
+  applied_rule_ids_json         Json
+  created_at                    DateTime @default(now())
+
+  @@map("mirath_money_allocations")
+}
+
+model ZakatMonetaryResultDb {
+  id                          String   @id @default(cuid())
+  calculation_id              String
+  category_id                 String
+  input_values_json           Json
+  zakat_base_minor            String
+  currency_code               String
+  religious_rate_num          Int
+  religious_rate_den          Int
+  unrounded_obligation_decimal String
+  final_obligation_minor      String
+  rounding_policy_id          String
+  applied_rule_ids_json       Json
+  evidence_ids_json           Json
+  non_monetary_obligation_json Json?
+  created_at                  DateTime @default(now())
+
+  @@map("zakat_monetary_results")
+}
+
+model MonetaryCalculationSnapshotDb {
+  id                          String   @id @default(cuid())
+  snapshot_id                 String   @unique
+  calculation_id              String
+  calculation_profile_id      String
+  currency_context_id         String
+  original_money_values_json  Json
+  exchange_rate_snapshots_json Json
+  valuation_snapshots_json    Json
+  converted_money_values_json Json
+  religious_values_json       Json
+  rounding_policies_json      Json
+  reconciliation_json         Json
+  knowledge_release_version   String
+  rule_engine_version         String
+  snapshot_checksum           String
+  is_immutable                Boolean  @default(true)
+  created_at                  DateTime @default(now())
+
+  @@map("monetary_calculation_snapshots")
+}
+
+model CurrencyValidationResultDb {
+  id             String   @id @default(cuid())
+  currency_code  String
+  version        String
+  is_valid       Boolean
+  errors_json    Json
+  validated_at   DateTime @default(now())
+
+  @@map("currency_validation_results")
+}
+
+model CurrencyAuditEventDb {
+  id             String   @id @default(cuid())
+  event_id       String   @unique
+  event_type     String
+  currency_code  String?
+  calculation_id String?
+  actor_id       String
+  details_json   Json
+  timestamp      DateTime @default(now())
+
+  @@map("currency_audit_events")
+}
+
+// ─── Phase 13: Standard Calculation Result Contract Models ─────────────────────
+
+model CalculationResultDb {
+  id                    String   @id @default(cuid())
+  result_id             String   @unique
+  calculation_id        String
+  result_version        String   @default("1.0.0")
+  result_schema_version String   @default("1.0.0")
+  module                String   // "MIRATH" | "ZAKAT"
+  status                String   // "COMPLETED" | "REVIEW_REQUIRED" | etc.
+  envelope_json         Json
+  result_checksum       String
+  created_at            DateTime @default(now())
+  updated_at            DateTime @updatedAt
+
+  @@map("canonical_calculation_results")
+}
+
+model CalculationResultVersionDb {
+  id                    String   @id @default(cuid())
+  result_id             String
+  version_number        Int
+  result_version        String
+  result_schema_version String
+  envelope_json         Json
+  checksum              String
+  created_at            DateTime @default(now())
+
+  @@map("canonical_calculation_result_versions")
+}
+
+model CalculationResultSnapshotDb {
+  id                         String   @id @default(cuid())
+  result_snapshot_id         String   @unique
+  result_id                  String
+  calculation_id             String
+  result_schema_version      String
+  module                     String
+  knowledge_release_version  String
+  rule_engine_version        String
+  snapshot_checksum          String
+  is_immutable               Boolean  @default(true)
+  snapshot_json              Json
+  created_at                 DateTime @default(now())
+
+  @@map("canonical_calculation_result_snapshots")
+}
+
+model CalculationResultItemDb {
+  id                     String   @id @default(cuid())
+  result_item_id         String   @unique
+  result_id              String
+  item_type              String
+  subject_id             String
+  subject_type           String
+  status                 String
+  decision_code          String
+  decision_type          String
+  authoritative_payload Json
+  item_checksum          String
+  created_at             DateTime @default(now())
+
+  @@map("canonical_calculation_result_items")
+}
+
+model CalculationResultItemSubjectDb {
+  id              String   @id @default(cuid())
+  result_item_id  String
+  subject_type    String
+  subject_id      String
+  subject_version String
+  instance_id     String
+
+  @@map("canonical_calculation_result_item_subjects")
+}
+
+model CalculationDecisionDb {
+  id                    String   @id @default(cuid())
+  result_item_id        String
+  decision_code         String
+  decision_type         String
+  authoritative_payload Json
+
+  @@map("canonical_calculation_decisions")
+}
+
+model CalculationExactValueDb {
+  id             String   @id @default(cuid())
+  result_item_id String
+  value_type     String   // "FRACTION" | "RATE" | "QUANTITY" | "COUNT"
+  value_id       String
+  payload_json   Json
+
+  @@map("canonical_calculation_exact_values")
+}
+
+model CalculationMoneyValueDb {
+  id                         String   @id @default(cuid())
+  result_item_id             String
+  value_id                   String
+  role                       String
+  currency_code              String
+  amount_minor               String
+  decimal_amount             String
+  exchange_rate_snapshot_id String?
+  rounding_policy_id         String?
+
+  @@map("canonical_calculation_money_values")
+}
+
+model RuleExecutionResultDb {
+  id                       String   @id @default(cuid())
+  rule_execution_result_id String   @unique
+  calculation_id           String
+  rule_id                  String
+  rule_version             String
+  rule_type                String
+  module                   String
+  selected_madhhab         String
+  match_status             String
+  execution_status         String
+  decision_type            String
+  execution_json           Json
+  executed_at              DateTime @default(now())
+
+  @@map("canonical_rule_execution_results")
+}
+
+model ConditionEvaluationResultDb {
+  id                      String   @id @default(cuid())
+  condition_evaluation_id String   @unique
+  rule_execution_result_id String
+  condition_id            String
+  field_path              String
+  operator                String
+  result                  String
+  trace_json              Json
+
+  @@map("canonical_condition_evaluation_results")
+}
+
+model AppliedRuleReferenceDb {
+  id                       String   @id @default(cuid())
+  result_item_id           String
+  rule_id                  String
+  rule_version             String
+  rule_family_id           String
+  rule_type                String
+  relationship_to_decision String
+  rule_execution_result_id String
+  selected_madhhab         String
+
+  @@map("canonical_applied_rule_references")
+}
+
+model ResultEvidenceLinkDb {
+  id                      String   @id @default(cuid())
+  result_evidence_link_id String   @unique
+  result_item_id          String
+  evidence_id             String
+  evidence_version        String
+  evidence_type           String
+  supports                String
+  related_rule_id         String?
+
+  @@map("canonical_result_evidence_links")
+}
+
+model ResultExplanationLinkDb {
+  id                  String   @id @default(cuid())
+  result_item_id      String
+  explanation_id      String
+  explanation_version String
+  purpose             String
+  related_rule_id     String?
+
+  @@map("canonical_result_explanation_links")
+}
+
+model CalculationWarningDb {
+  id             String   @id @default(cuid())
+  warning_id     String   @unique
+  result_id      String
+  warning_code   String
+  severity       String
+  scope          String
+  subject_id     String?
+  explanation_id String?
+  details_json   Json?
+
+  @@map("canonical_calculation_warnings")
+}
+
+model CalculationErrorDb {
+  id             String   @id @default(cuid())
+  error_id       String   @unique
+  result_id      String
+  error_code     String
+  category       String
+  severity       String
+  scope          String
+  message_key    String
+  details_json   Json?
+
+  @@map("canonical_calculation_errors")
+}
+
+model CalculationReviewRequirementDb {
+  id                    String   @id @default(cuid())
+  result_id             String
+  review_type           String
+  reason_code           String
+  affected_subjects_json Json
+  blocking              Boolean  @default(false)
+  allowed_actions_json  Json
+
+  @@map("canonical_calculation_review_requirements")
+}
+
+model CalculationSummaryDb {
+  id                        String   @id @default(cuid())
+  result_id                 String   @unique
+  result_item_count         Int
+  completed_item_count      Int
+  warning_item_count        Int
+  review_required_item_count Int
+  unsupported_item_count    Int
+  error_item_count          Int
+  has_monetary_results      Boolean
+  has_physical_obligations  Boolean
+  has_blocked_heirs         Boolean
+  has_partial_results       Boolean
+  decision_codes_json       Json
+
+  @@map("canonical_calculation_summaries")
+}
+
+model ModuleResultDb {
+  id           String   @id @default(cuid())
+  result_id    String   @unique
+  module       String
+  payload_json Json
+
+  @@map("canonical_module_results")
+}
+
+model MirathModuleResultDb {
+  id           String   @id @default(cuid())
+  result_id    String   @unique
+  payload_json Json
+
+  @@map("canonical_mirath_module_results")
+}
+
+model ZakatModuleResultDb {
+  id           String   @id @default(cuid())
+  result_id    String   @unique
+  payload_json Json
+
+  @@map("canonical_zakat_module_results")
+}
+
+model ResultReconciliationDb {
+  id           String   @id @default(cuid())
+  result_id    String   @unique
+  status       String
+  checks_json  Json
+
+  @@map("canonical_result_reconciliations")
+}
+
+model ResultPresentationMetadataDb {
+  id           String   @id @default(cuid())
+  result_id    String   @unique
+  default_view String
+  sections_json Json
+
+  @@map("canonical_result_presentation_metadata")
+}
+
+model ResultAuditRecordDb {
+  id                      String   @id @default(cuid())
+  result_id               String   @unique
+  created_at              DateTime @default(now())
+  created_by_service      String
+  calculation_request_id  String
+  idempotency_key         String?
+  result_assembly_trace_id String
+
+  @@map("canonical_result_audit_records")
+}
+
+model ResultIntegrityRecordDb {
+  id                String   @id @default(cuid())
+  result_id         String   @unique
+  result_checksum   String
+  input_checksum    String
+  profile_checksum  String
+  verified_at       DateTime @default(now())
+
+  @@map("canonical_result_integrity_records")
+}
+
+model ResultRelationshipDb {
+  id                String   @id @default(cuid())
+  relationship_id   String   @unique
+  relationship_type String
+  source_result_id  String
+  target_result_id  String
+  reason            String?
+  created_at        DateTime @default(now())
+
+  @@map("canonical_result_relationships")
+}
+
+model RenderedCalculationResultDb {
+  id                      String   @id @default(cuid())
+  rendered_result_id      String   @unique
+  authoritative_result_id String
+  language_tag            String
+  rendered_json           Json
+  rendered_checksum       String
+  created_at              DateTime @default(now())
+
+  @@map("canonical_rendered_calculation_results")
+}
+
+model ResultValidationRecordDb {
+  id           String   @id @default(cuid())
+  result_id    String
+  is_valid     Boolean
+  errors_json  Json
+  validated_at DateTime @default(now())
+
+  @@map("canonical_result_validation_records")
+}
+
+model IdempotencyRecordDb {
+  id               String   @id @default(cuid())
+  idempotency_key  String   @unique
+  user_id          String
+  request_checksum String
+  result_id        String
+  created_at       DateTime @default(now())
+
+  @@map("canonical_idempotency_records")
+}
+
+// ========================================================
+// PHASE 14 — MIZAN STANDARD REPORT ARCHITECTURE MODELS
+// ========================================================
+
+model ReportRecordDb {
+  id                    String   @id @default(cuid())
+  report_id             String   @unique
+  report_version        String   @default("1.0.0")
+  report_schema_version String   @default("1.0.0")
+  report_type           String
+  calculation_id        String
+  result_id             String
+  module                String
+  status                String
+  created_at            DateTime @default(now())
+  updated_at            DateTime @updatedAt
+
+  @@map("canonical_reports")
+}
+
+model ReportVersionDb {
+  id               String   @id @default(cuid())
+  report_id        String
+  version          String
+  schema_version   String
+  envelope_json    Json
+  checksum         String
+  created_at       DateTime @default(now())
+
+  @@map("canonical_report_versions")
+}
+
+model ReportSnapshotDb {
+  id                    String   @id @default(cuid())
+  report_snapshot_id    String   @unique
+  report_id             String
+  report_version        String
+  source_result_id      String
+  source_result_snapshot_id String
+  report_type           String
+  rendering_context_json Json
+  section_snapshots_json Json
+  template_json         Json
+  report_content_checksum String
+  rendered_file_checksum String?
+  created_at            DateTime @default(now())
+  is_immutable          Boolean  @default(true)
+
+  @@map("canonical_report_snapshots")
+}
+
+model ReportTemplateDb {
+  id                 String   @id @default(cuid())
+  report_template_id String   @unique
+  name               String
+  description        String
+  current_version    String   @default("1.0.0")
+  status             String   @default("APPROVED")
+  created_at         DateTime @default(now())
+  updated_at         DateTime @updatedAt
+
+  @@map("canonical_report_templates")
+}
+
+model ReportTemplateVersionDb {
+  id                 String   @id @default(cuid())
+  report_template_id String
+  version            String
+  definition_json    Json
+  content_checksum   String
+  status             String   @default("APPROVED")
+  created_at         DateTime @default(now())
+
+  @@map("canonical_report_template_versions")
+}
+
+model ReportSectionDefinitionDb {
+  id                 String   @id @default(cuid())
+  section_id         String
+  template_id        String
+  sequence           Int
+  visibility_json    Json
+  page_behaviour_json Json
+  created_at         DateTime @default(now())
+
+  @@map("canonical_report_section_definitions")
+}
+
+model ReportSectionInstanceDb {
+  id                 String   @id @default(cuid())
+  section_instance_id String  @unique
+  report_id          String
+  section_id         String
+  sequence           Int
+  status             String
+  title_key          String
+  content_blocks_json Json
+  created_at         DateTime @default(now())
+
+  @@map("canonical_report_section_instances")
+}
+
+model ReportContentBlockDb {
+  id                 String   @id @default(cuid())
+  block_id           String   @unique
+  section_instance_id String
+  block_type         String
+  sequence           Int
+  title_key          String?
+  payload_json       Json
+  created_at         DateTime @default(now())
+
+  @@map("canonical_report_content_blocks")
+}
+
+model ReportResultItemLinkDb {
+  id                 String   @id @default(cuid())
+  report_id          String
+  section_id         String
+  result_item_id     String
+  created_at         DateTime @default(now())
+
+  @@map("canonical_report_result_item_links")
+}
+
+model ReportEvidenceLinkDb {
+  id                 String   @id @default(cuid())
+  report_id          String
+  section_id         String
+  evidence_id        String
+  evidence_version   String
+  created_at         DateTime @default(now())
+
+  @@map("canonical_report_evidence_links")
+}
+
+model ReportExplanationLinkDb {
+  id                 String   @id @default(cuid())
+  report_id          String
+  section_id         String
+  explanation_id     String
+  explanation_version String
+  created_at         DateTime @default(now())
+
+  @@map("canonical_report_explanation_links")
+}
+
+model ReportWarningLinkDb {
+  id                 String   @id @default(cuid())
+  report_id          String
+  section_id         String
+  warning_code       String
+  created_at         DateTime @default(now())
+
+  @@map("canonical_report_warning_links")
+}
+
+model ReportReviewLinkDb {
+  id                 String   @id @default(cuid())
+  report_id          String
+  section_id         String
+  reason_code        String
+  created_at         DateTime @default(now())
+
+  @@map("canonical_report_review_links")
+}
+
+model ReportReconciliationRecordDb {
+  id                 String   @id @default(cuid())
+  report_id          String   @unique
+  status             String
+  reconciliation_json Json
+  created_at         DateTime @default(now())
+
+  @@map("canonical_report_reconciliation_records")
+}
+
+model ReportRenderingContextDb {
+  id                 String   @id @default(cuid())
+  report_id          String   @unique
+  language_tag       String
+  locale             String
+  direction          String
+  report_currency    String
+  selected_madhhab   String
+  format             String
+  rendering_mode     String
+  generated_at       DateTime @default(now())
+
+  @@map("canonical_report_rendering_contexts")
+}
+
+model ReportRenderedFileDb {
+  id                 String   @id @default(cuid())
+  file_id            String   @unique
+  report_id          String
+  format             String
+  file_checksum      String
+  file_size_bytes    Int
+  created_at         DateTime @default(now())
+
+  @@map("canonical_report_rendered_files")
+}
+
+model ReportAttachmentDb {
+  id                 String   @id @default(cuid())
+  attachment_id      String   @unique
+  report_id          String
+  type               String
+  title              String
+  payload_json       Json
+  created_at         DateTime @default(now())
+
+  @@map("canonical_report_attachments")
+}
+
+model ReportAuditRecordDb {
+  id                 String   @id @default(cuid())
+  report_id          String
+  created_by_service String
+  report_request_id  String
+  template_version   String
+  created_at         DateTime @default(now())
+
+  @@map("canonical_report_audit_records")
+}
+
+model ReportIntegrityRecordDb {
+  id                     String   @id @default(cuid())
+  report_id              String   @unique
+  report_checksum        String
+  result_checksum        String
+  template_checksum      String
+  rendered_file_checksum String?
+  is_immutable           Boolean  @default(true)
+  verified_at            DateTime @default(now())
+
+  @@map("canonical_report_integrity_records")
+}
+
+model ReportValidationRecordDb {
+  id                 String   @id @default(cuid())
+  report_id          String
+  is_valid           Boolean
+  errors_json        Json
+  validated_at       DateTime @default(now())
+
+  @@map("canonical_report_validation_records")
+}
+
+// ==========================================
+// PHASE 16: VERIFIED AI EVIDENCE CONTEXT SYSTEM MODELS
+// ==========================================
+
+model AIEvidenceContextRecordDb {
+  id                    String   @id @default(cuid())
+  ai_evidence_context_id String   @unique
+  context_schema_version String  @default("1.0.0")
+  task                  String   @default("EXPLAIN_VERIFIED_EVIDENCE")
+  context_type          String
+  binding               String
+  completeness_status   String
+  navigation_id         String
+  calculation_id        String?
+  report_id             String?
+  subject_id            String?
+  evidence_id           String
+  evidence_version      String
+  selected_madhhab      String
+  language_tag          String   @default("en")
+  knowledge_release_ver String   @default("1.0.0")
+  context_checksum      String
+  created_at            DateTime @default(now())
+
+  @@map("ai_evidence_context_records")
+}
+
+model AIEvidenceContextVersionDb {
+  id               String   @id @default(cuid())
+  version          String   @unique
+  changes_summary  String
+  is_active        Boolean  @default(true)
+  created_at       DateTime @default(now())
+
+  @@map("ai_evidence_context_versions")
+}
+
+model AIEvidenceContextSnapshotDb {
+  id                      String   @id @default(cuid())
+  snapshot_id             String   @unique
+  ai_evidence_context_id  String
+  navigation_id           String
+  calculation_id          String?
+  result_id               String?
+  result_item_id          String?
+  context_type            String
+  verified_context_json   Json
+  selected_madhhab        String
+  language_tag            String
+  knowledge_release_ver   String
+  rule_engine_ver         String
+  prompt_policy_ver       String
+  restriction_policy_ver  String
+  context_checksum        String
+  is_immutable            Boolean  @default(true)
+  created_at              DateTime @default(now())
+
+  @@map("ai_evidence_context_snapshots")
+}
+
+model AIEvidenceContextComponentDb {
+  id                      String   @id @default(cuid())
+  ai_evidence_context_id  String
+  component_name          String
+  component_checksum      String
+  component_json          Json
+  created_at              DateTime @default(now())
+
+  @@map("ai_evidence_context_components")
+}
+
+model AIEvidenceRequestDb {
+  id                   String   @id @default(cuid())
+  ai_request_id        String   @unique
+  task                 String   @default("EXPLAIN_VERIFIED_EVIDENCE")
+  context_snapshot_id  String
+  prompt_policy_id     String
+  prompt_policy_ver    String
+  prompt_template_id   String
+  prompt_template_ver  String
+  user_question_text   String
+  user_language_tag    String   @default("en")
+  response_schema_id   String
+  response_schema_ver  String
+  provider_id          String   @default("GEMINI")
+  model_policy_id      String
+  request_checksum     String
+  created_at           DateTime @default(now())
+
+  @@map("ai_evidence_requests")
+}
+
+model AIEvidenceRequestAuditDb {
+  id                   String   @id @default(cuid())
+  ai_request_id        String   @unique
+  context_snapshot_id  String
+  user_id              String
+  provider_id          String
+  model_identifier     String
+  prompt_policy_ver    String
+  prompt_template_ver  String
+  user_question_hash   String
+  context_checksum     String
+  request_checksum     String
+  provider_response_id String?
+  response_checksum    String?
+  schema_valid         Boolean  @default(false)
+  grounding_valid      Boolean  @default(false)
+  quotation_valid      Boolean  @default(false)
+  display_status       String
+  error_code           String?
+  created_at           DateTime @default(now())
+
+  @@map("ai_evidence_request_audits")
+}
+
+model AIEvidenceResponseDb {
+  id                     String   @id @default(cuid())
+  ai_response_id         String   @unique
+  response_schema_ver    String   @default("1.0.0")
+  status                 String
+  requested_language_tag String   @default("en")
+  resolved_language_tag  String   @default("en")
+  fallback_used          Boolean  @default(false)
+  content_json           Json
+  source_usage_json      Json
+  response_checksum      String
+  created_at             DateTime @default(now())
+
+  @@map("ai_evidence_responses")
+}
+
+model AIEvidenceResponseSnapshotDb {
+  id                       String   @id @default(cuid())
+  ai_response_snapshot_id  String   @unique
+  ai_request_id            String
+  ai_context_snapshot_id   String
+  provider_id              String   @default("GEMINI")
+  model_identifier         String
+  raw_provider_ref         String?
+  validated_response_json  Json
+  validation_results_json  Json
+  response_checksum        String
+  is_immutable             Boolean  @default(true)
+  created_at               DateTime @default(now())
+
+  @@map("ai_evidence_response_snapshots")
+}
+
+model AIEvidenceResponseClaimDb {
+  id                 String   @id @default(cuid())
+  claim_id           String   @unique
+  ai_response_id     String
+  claim_type         String
+  text               String
+  support_json       Json
+  validation_status  String   @default("PENDING")
+  created_at         DateTime @default(now())
+
+  @@map("ai_evidence_response_claims")
+}
+
+model AIEvidenceResponseValidationDb {
+  id                 String   @id @default(cuid())
+  ai_response_id     String   @unique
+  schema_valid       Boolean
+  errors_json        Json
+  validated_at       DateTime @default(now())
+
+  @@map("ai_evidence_response_validations")
+}
+
+model AIEvidenceGroundingValidationDb {
+  id                 String   @id @default(cuid())
+  ai_response_id     String   @unique
+  is_grounded        Boolean
+  grounding_score    Float
+  violations_json    Json
+  validated_at       DateTime @default(now())
+
+  @@map("ai_evidence_grounding_validations")
+}
+
+model AIEvidenceQuotationValidationDb {
+  id                 String   @id @default(cuid())
+  ai_response_id     String   @unique
+  all_quotes_valid   Boolean
+  quotation_matches  Json
+  validated_at       DateTime @default(now())
+
+  @@map("ai_evidence_quotation_validations")
+}
+
+model AIEvidenceQuestionClassificationDb {
+  id                 String   @id @default(cuid())
+  ai_request_id      String   @unique
+  question_text      String
+  classification     String
+  requires_recalc    Boolean  @default(false)
+  is_injection       Boolean  @default(false)
+  classified_at      DateTime @default(now())
+
+  @@map("ai_evidence_question_classifications")
+}
+
+model AIEvidenceConversationDb {
+  id                      String   @id @default(cuid())
+  conversation_id         String   @unique
+  user_id                 String
+  ai_context_snapshot_id  String
+  initial_evidence_id     String
+  selected_madhhab        String
+  knowledge_release_ver   String   @default("1.0.0")
+  title                   String
+  status                  String   @default("ACTIVE")
+  created_at              DateTime @default(now())
+  updated_at              DateTime @updatedAt
+
+  @@map("ai_evidence_conversations")
+}
+
+model AIEvidenceConversationTurnDb {
+  id               String   @id @default(cuid())
+  conversation_id  String
+  turn_number      Int
+  user_question    String
+  ai_request_id    String
+  ai_response_id   String
+  response_status  String
+  created_at       DateTime @default(now())
+
+  @@map("ai_evidence_conversation_turns")
+}
+
+model AIPromptPolicyDb {
+  id           String   @id @default(cuid())
+  policy_id    String   @unique
+  title        String
+  status       String   @default("DRAFT")
+  created_at   DateTime @default(now())
+
+  @@map("ai_prompt_policies")
+}
+
+model AIPromptPolicyVersionDb {
+  id           String   @id @default(cuid())
+  policy_id    String
+  version      String
+  policy_text  String
+  checksum     String
+  status       String   @default("DRAFT")
+  created_at   DateTime @default(now())
+
+  @@unique([policy_id, version])
+  @@map("ai_prompt_policy_versions")
+}
+
+model AIPromptTemplateDb {
+  id           String   @id @default(cuid())
+  template_id  String   @unique
+  task         String
+  status       String   @default("DRAFT")
+  created_at   DateTime @default(now())
+
+  @@map("ai_prompt_templates")
+}
+
+model AIPromptTemplateVersionDb {
+  id                String   @id @default(cuid())
+  template_id       String
+  version           String
+  template_json     Json
+  checksum          String
+  status            String   @default("DRAFT")
+  created_at        DateTime @default(now())
+
+  @@unique([template_id, version])
+  @@map("ai_prompt_template_versions")
+}
+
+model AIResponseSchemaDb {
+  id           String   @id @default(cuid())
+  schema_id    String
+  version      String
+  schema_json  Json
+  checksum     String
+  status       String   @default("APPROVED")
+  created_at   DateTime @default(now())
+
+  @@unique([schema_id, version])
+  @@map("ai_response_schemas")
+}
+
+model AIModelPolicyDb {
+  id                  String   @id @default(cuid())
+  model_policy_id     String   @unique
+  version             String
+  provider_id         String   @default("GEMINI")
+  approved_models     Json
+  structured_output   Boolean  @default(true)
+  external_search     Boolean  @default(false)
+  tool_use            Boolean  @default(false)
+  status              String   @default("APPROVED")
+  created_at          DateTime @default(now())
+
+  @@map("ai_model_policies")
+}
+
+model AIProviderConfigurationDb {
+  id               String   @id @default(cuid())
+  provider_id      String   @unique
+  api_key_env_var  String   @default("GEMINI_API_KEY")
+  default_model    String   @default("gemini-1.5-pro")
+  timeout_ms       Int      @default(30000)
+  is_active        Boolean  @default(true)
+  updated_at       DateTime @updatedAt
+
+  @@map("ai_provider_configurations")
+}
+
+model AIContextMinimizationRecordDb {
+  id                      String   @id @default(cuid())
+  ai_evidence_context_id  String   @unique
+  original_size_bytes     Int
+  minimized_size_bytes    Int
+  removed_fields_json     Json
+  minimized_at            DateTime @default(now())
+
+  @@map("ai_context_minimization_records")
+}
+
+model AIPrivacyFilterRecordDb {
+  id                      String   @id @default(cuid())
+  ai_evidence_context_id  String   @unique
+  redacted_pii_count      Int      @default(0)
+  redacted_fields_json    Json
+  filtered_at             DateTime @default(now())
+
+  @@map("ai_privacy_filter_records")
+}
+
+model AIRetrievalTraceDb {
+  id                String   @id @default(cuid())
+  retrieval_trace_id String  @unique
+  retrieval_mode    String
+  query_source      String   @default("SERVER_GENERATED")
+  retrieved_records Json
+  retrieved_at      DateTime @default(now())
+
+  @@map("ai_retrieval_traces")
+}
+
+model AIPromptInjectionEventDb {
+  id               String   @id @default(cuid())
+  user_id          String
+  raw_prompt       String
+  detected_pattern String
+  action_taken     String   @default("REJECTED")
+  logged_at        DateTime @default(now())
+
+  @@map("ai_prompt_injection_events")
+}
+
+model AIContextValidationResultDb {
+  id                      String   @id @default(cuid())
+  ai_evidence_context_id  String
+  is_valid                Boolean
+  gate_results_json       Json
+  errors_json             Json
+  validated_at            DateTime @default(now())
+
+  @@map("ai_context_validation_results")
+}
+
+
+
+
+
+

@@ -2,6 +2,8 @@ import { prisma } from '../../config/database';
 import { MadhhabCode, CalculationProfile } from '@mizan/shared';
 import { CalculationProfileResolverService } from '../profile/services/calculation-profile-resolver.service';
 import { CalculationProfileSnapshotService } from '../profile/services/calculation-profile-snapshot.service';
+import { CalculationResultAssemblerService } from '../results/services/calculation-result-assembler.service';
+import { CalculationResultRepository } from '../results/services/calculation-result-repository.service';
 
 const SILVER_NISAB_GRAMS = 595;
 const GOLD_NISAB_GRAMS = 85;
@@ -134,6 +136,37 @@ export class ZakatService {
 
       return calculation.id;
     });
+
+    // Assemble and persist Phase 13 Standard Calculation Result Envelope
+    try {
+      const envelope = CalculationResultAssemblerService.assembleEnvelope({
+        calculationId,
+        module: 'ZAKAT',
+        profile,
+        rawInput: input as any,
+        zakatResult: {
+          isDue: result.isEligible,
+          hawlMet: hawlMet,
+          totalZakatableWealth: result.totalZakatableWealth,
+          totalLiabilities: liabilities,
+          netZakatableWealth: result.netZakatableWealth,
+          nisabThreshold: nisabThreshold,
+          zakatDue: result.zakatDue,
+          zakatRate: 0.025,
+          breakdown: [
+            { name: 'Cash', value: cashVal, isZakatable: true },
+            { name: 'Gold', value: goldVal, isZakatable: true },
+            { name: 'Silver', value: silverVal, isZakatable: true },
+            { name: 'Inventory', value: invVal, isZakatable: true },
+            { name: 'Investments', value: investVal, isZakatable: true },
+            { name: 'Receivables', value: recVal, isZakatable: true },
+          ],
+        },
+      });
+      await CalculationResultRepository.saveResult(envelope);
+    } catch (e) {
+      console.warn('Zakat Envelope persistence error:', e);
+    }
 
     return { calculationId, result, profile };
   }

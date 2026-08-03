@@ -3,6 +3,11 @@ import Decimal from 'decimal.js';
 /** Fraction represented as integer numerator / denominator */
 export interface Frac { n: number; d: number }
 
+export interface Fraction {
+  numerator: number | bigint;
+  denominator: number | bigint;
+}
+
 /** Greatest common divisor (Euclidean algorithm) */
 export function gcd(a: number, b: number): number {
   a = Math.abs(a);
@@ -119,3 +124,55 @@ export function rationalEquals(a: Frac, b: Frac): boolean {
 export function rationalToMonetaryAmount(share: Frac, estateTotal: number): Decimal {
   return new Decimal(share.n).dividedBy(share.d).mul(new Decimal(estateTotal));
 }
+
+// ─── ExactFraction (BigInt Precision) ───────────────────────────────────────
+
+export interface ExactFraction {
+  numerator: bigint;
+  denominator: bigint;
+}
+
+export function gcdBigInt(a: bigint, b: bigint): bigint {
+  a = a < 0n ? -a : a;
+  b = b < 0n ? -b : b;
+  while (b !== 0n) {
+    const t = b;
+    b = a % b;
+    a = t;
+  }
+  return a;
+}
+
+export function simplifyExactFraction(f: ExactFraction): ExactFraction {
+  if (f.denominator === 0n) throw new Error('DIVISION_BY_ZERO: Fraction denominator cannot be 0');
+  if (f.numerator === 0n) return { numerator: 0n, denominator: 1n };
+  const g = gcdBigInt(f.numerator, f.denominator);
+  let n = f.numerator / g;
+  let d = f.denominator / g;
+  if (d < 0n) {
+    n = -n;
+    d = -d;
+  }
+  return { numerator: n, denominator: d };
+}
+
+export function multiplyExactFractions(a: ExactFraction, b: ExactFraction): ExactFraction {
+  return simplifyExactFraction({
+    numerator: a.numerator * b.numerator,
+    denominator: a.denominator * b.denominator,
+  });
+}
+
+export function addExactFractions(a: ExactFraction, b: ExactFraction): ExactFraction {
+  return simplifyExactFraction({
+    numerator: a.numerator * b.denominator + b.numerator * a.denominator,
+    denominator: a.denominator * b.denominator,
+  });
+}
+
+export function compareExactFractions(a: ExactFraction, b: ExactFraction): number {
+  const diff = a.numerator * b.denominator - b.numerator * a.denominator;
+  return diff < 0n ? -1 : diff > 0n ? 1 : 0;
+}
+
+

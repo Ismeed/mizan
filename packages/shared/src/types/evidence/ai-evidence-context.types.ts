@@ -1,21 +1,27 @@
 /**
- * AI Evidence Context Contract (Phase 4)
+ * AI Evidence Context Contract (Phase 4 & Phase 15)
  * Prepared verified context package with explicit AI safety restrictions.
  */
 
 export interface AIEvidenceContextRestrictions {
   mustNotRecalculate: boolean;
   mustNotChangeDecision: boolean;
+  mustNotChangeMadhhab: boolean;
+  mustNotSwitchMadhhab?: boolean; // Legacy Phase 4 alias
   mustNotInventEvidence: boolean;
+  mustNotInventSourceText: boolean;
   mustNotInventTranslation: boolean;
-  mustNotInventHadithNumber: boolean;
-  mustNotSwitchMadhhab: boolean;
+  mustNotInventHadithNumber?: boolean; // Legacy Phase 4 alias
+  mustNotInventRule: boolean;
+  mustNotInventException: boolean;
+  mustNotPresentCommentaryAsEvidence: boolean;
+  mustNotUseUnapprovedComparativeContext: boolean;
   mustUseProvidedContext: boolean;
   mustDiscloseInsufficientEvidence: boolean;
 }
 
 export interface AIEvidenceContext {
-  task: 'EXPLAIN_EVIDENCE' | 'COMPARE_MADHHAB' | 'GENERAL_EXPLANATION';
+  task: 'EXPLAIN_EVIDENCE' | 'COMPARE_MADHHAB' | 'GENERAL_EXPLANATION' | 'EXPLAIN_VERIFIED_EVIDENCE';
   calculationContext: {
     calculationId?: string;
     module: 'MIRATH' | 'ZAKAT';
@@ -50,10 +56,16 @@ export function getDefaultAIRestrictions(): AIEvidenceContextRestrictions {
   return {
     mustNotRecalculate: true,
     mustNotChangeDecision: true,
+    mustNotChangeMadhhab: true,
+    mustNotSwitchMadhhab: true,
     mustNotInventEvidence: true,
+    mustNotInventSourceText: true,
     mustNotInventTranslation: true,
     mustNotInventHadithNumber: true,
-    mustNotSwitchMadhhab: true,
+    mustNotInventRule: true,
+    mustNotInventException: true,
+    mustNotPresentCommentaryAsEvidence: true,
+    mustNotUseUnapprovedComparativeContext: true,
     mustUseProvidedContext: true,
     mustDiscloseInsufficientEvidence: true,
   };

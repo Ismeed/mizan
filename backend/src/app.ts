@@ -14,41 +14,23 @@ import { adminRouter }        from './features/admin/admin.routes';
 import { knowledgeAdminRouter } from './features/knowledge/knowledge-admin.routes';
 import { profileRouter }        from './features/profile/profile.routes';
 import { rulesAdminRouter }     from './features/rules/rules.routes';
-import { evidenceRouter, adminEvidenceRouter } from './features/evidence/evidence.routes';
-import hijabRouter from './features/hijab/hijab.routes';
-import heirsRouter from './features/heirs/heirs.routes';
-import zakatCategoriesRouter from './features/zakat/zakat-categories.routes';
-import livestockRouter from './features/zakat/livestock/livestock.routes';
-import { apiLimiter }        from './shared/middleware/rate-limit.middleware';
-import { sendError }         from './shared/utils/response.utils';
+import { evidenceNavigationRouter, adminEvidenceNavigationRouter } from './features/evidence-navigation/evidence-navigation.routes';
+import { aiEvidenceRouter, adminAiEvidenceRouter } from './features/ai/evidence/ai-evidence.routes';
 
-const app = express();
-
-// ── Security & Logging ────────────────────────────────────────────────────────
-app.use(helmet());
-app.use(cors({ origin: process.env.ALLOWED_ORIGINS?.split(',') ?? '*' }));
-app.use(express.json({ limit: '10mb' }));
-app.use(express.urlencoded({ extended: true }));
-app.use(morgan(process.env.NODE_ENV === 'production' ? 'combined' : 'dev'));
-
-// ── Global Rate Limiter ───────────────────────────────────────────────────────
-app.use('/api', apiLimiter);
-
-// ── Health Check ──────────────────────────────────────────────────────────────
-app.get('/health', (_req, res) => {
-  res.status(200).json({ status: 'ok', timestamp: new Date(), version: '1.0.0' });
-});
-
-// ── Feature Routes ────────────────────────────────────────────────────────────
-app.use('/api',               profileRouter);
+// ── API Routes ────────────────────────────────────────────────────────────────
 app.use('/api/auth',          authRouter);
 app.use('/api/inheritance',   inheritanceRouter);
 app.use('/api/zakat',         zakatRouter);
+app.use('/api/ai/evidence',   aiEvidenceRouter);
 app.use('/api/ai',            aiRouter);
 app.use('/api/reports',       reportRouter);
+app.use('/api/profile',       profileRouter);
 app.use('/api/notifications', notificationRouter);
 app.use('/api/support',       supportRouter);
 app.use('/api/evidence',      evidenceRouter);
+app.use('/api/evidence-navigation', evidenceNavigationRouter);
+app.use('/api/admin/evidence-navigation', adminEvidenceNavigationRouter);
+app.use('/api/admin/ai',      adminAiEvidenceRouter);
 app.use('/api/admin/evidence', adminEvidenceRouter);
 app.use('/api/admin/knowledge', knowledgeAdminRouter);
 app.use('/api/admin/rules',     rulesAdminRouter);
@@ -57,6 +39,12 @@ app.use('/api/hijab',         hijabRouter);
 app.use('/api/mirath/heirs',  heirsRouter);
 app.use('/api/zakat/categories', zakatCategoriesRouter);
 app.use('/api/zakat/livestock', livestockRouter);
+app.use('/api/zakat/agriculture', agricultureRouter);
+app.use('/api/explanations',  explanationsRouter);
+app.use('/api',               currencyRouter);
+app.use('/api',               resultsRouter);
+
+
 
 
 // ── 404 Handler ───────────────────────────────────────────────────────────────

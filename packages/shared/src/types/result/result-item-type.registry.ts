@@ -1,0 +1,40 @@
+/**
+ * MIZAN — Result Item Type Registry (Phase 13)
+ * Permanent item type registry for Mirath, Zakat, and Shared items.
+ */
+
+export type SharedResultItemType =
+  | 'VALIDATION_RESULT'
+  | 'WARNING_RESULT'
+  | 'REVIEW_GATE_RESULT'
+  | 'UNSUPPORTED_RESULT';
+
+export type MirathResultItemType =
+  | 'ESTATE_PREPARATION_RESULT'
+  | 'HEIR_ELIGIBILITY_RESULT'
+  | 'HIJAB_RESULT'
+  | 'FIXED_SHARE_RESULT'
+  | 'RESIDUARY_RESULT'
+  | 'SHARE_ADJUSTMENT_RESULT'
+  | 'HEIR_DISTRIBUTION_RESULT'
+  | 'MIRATH_RECONCILIATION_RESULT';
+
+export type ZakatResultItemType =
+  | 'ZAKAT_CATEGORY_RESULT'
+  | 'ZAKAT_ELIGIBILITY_RESULT'
+  | 'ZAKAT_AGGREGATION_RESULT'
+  | 'ZAKAT_NISAB_RESULT'
+  | 'ZAKAT_HOLDING_PERIOD_RESULT'
+  | 'ZAKAT_RATE_RESULT'
+  | 'ZAKAT_MONETARY_OBLIGATION_RESULT'
+  | 'LIVESTOCK_SCHEDULE_RESULT'
+  | 'LIVESTOCK_OBLIGATION_RESULT'
+  | 'AGRICULTURE_ELIGIBILITY_RESULT'
+  | 'AGRICULTURE_NISAB_RESULT'
+  | 'AGRICULTURE_IRRIGATION_RESULT'
+  | 'AGRICULTURE_OBLIGATION_RESULT';
+
+export type ResultItemType =
+  | SharedResultItemType
+  | MirathResultItemType
+  | ZakatResultItemType;

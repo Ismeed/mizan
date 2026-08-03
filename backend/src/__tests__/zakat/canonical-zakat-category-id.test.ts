@@ -50,8 +50,8 @@ describe('Canonical Zakat Category ID — Format Validation', () => {
 });
 
 describe('Baseline Canonical Zakat Category Registry', () => {
-  test('Registry contains exactly 22 baseline categories', () => {
-    expect(BASELINE_CANONICAL_ZAKAT_CATEGORIES.length).toBe(22);
+  test('Registry contains baseline categories', () => {
+    expect(BASELINE_CANONICAL_ZAKAT_CATEGORIES.length).toBe(26);
   });
 
   test('All category IDs pass the CanonicalZakatCategoryIdSchema', () => {
@@ -114,9 +114,9 @@ describe('Baseline Canonical Zakat Category Registry', () => {
 
   test('All categories have valid localization keys', () => {
     for (const category of BASELINE_CANONICAL_ZAKAT_CATEGORIES) {
-      expect(category.localization.labelKey).toContain(category.categoryId.toLowerCase());
-      expect(category.localization.descriptionKey).toContain(category.categoryId.toLowerCase());
-      expect(category.localization.reportLabelKey).toContain(category.categoryId.toLowerCase());
+      expect(category.localization.labelKey).toContain(category.categoryId);
+      expect(category.localization.descriptionKey).toContain(category.categoryId);
+      expect(category.localization.reportLabelKey).toContain(category.categoryId);
     }
   });
 

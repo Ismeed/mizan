@@ -3,6 +3,8 @@ import { calculateMirath, MadhhabCode, CalculationProfile } from '@mizan/shared'
 import { HeirsInput, MirathResult } from '@mizan/shared';
 import { CalculationProfileResolverService } from '../profile/services/calculation-profile-resolver.service';
 import { CalculationProfileSnapshotService } from '../profile/services/calculation-profile-snapshot.service';
+import { CalculationResultAssemblerService } from '../results/services/calculation-result-assembler.service';
+import { CalculationResultRepository } from '../results/services/calculation-result-repository.service';
 
 export interface InheritanceCalculateInput {
   userId: string;
@@ -97,6 +99,20 @@ export class InheritanceService {
 
       return calculation.id;
     });
+
+    // Assemble and persist Phase 13 Standard Calculation Result Envelope
+    try {
+      const envelope = CalculationResultAssemblerService.assembleEnvelope({
+        calculationId: saved,
+        module: 'MIRATH',
+        profile,
+        rawInput: input as any,
+        mirathResult: result,
+      });
+      await CalculationResultRepository.saveResult(envelope);
+    } catch (e) {
+      console.warn('Envelope persistence error:', e);
+    }
 
     return { calculationId: saved, result, profile };
   }

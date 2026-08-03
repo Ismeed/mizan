@@ -33,6 +33,9 @@ interface ZakatState {
 
   // Agriculture
   irrigation:       IrrigationMethod;
+  agricultureProduceType: string;
+  agricultureQuantity: string;
+  agricultureQuantityUnit: string;
 
   // Multi-livestock (counts stored as numbers — steppers, not text inputs)
   livestockCounts:  LivestockCounts;
@@ -49,6 +52,9 @@ interface ZakatState {
   setSelectedTypes:   (types: string[]) => void;
   setField:           (field: StringField, value: string) => void;
   setIrrigation:      (method: IrrigationMethod) => void;
+  setAgricultureProduceType: (produceType: string) => void;
+  setAgricultureQuantity: (quantity: string) => void;
+  setAgricultureQuantityUnit: (unit: string) => void;
   setLivestockCount:  (animal: LivestockAnimal, count: number) => void;
   setEngineResult:    (result: ZakatEngineResult | null) => void;
   setIsCalculating:   (v: boolean) => void;
@@ -56,29 +62,35 @@ interface ZakatState {
 }
 
 const INITIAL_STATE = {
-  selectedTypes:   [],
-  cash:            '',
-  gold:            '',
-  silver:          '',
-  business:        '',
-  investments:     '',
-  other:           '',
-  agriculture:     '',
-  irrigation:      'rain' as IrrigationMethod,
-  livestockCounts: { ...DEFAULT_LIVESTOCK_COUNTS },
-  debts:           '',
-  currency:        'NGN',
-  hawlMet:         true,
-  engineResult:    null,
-  isCalculating:   false,
+  selectedTypes:           [],
+  cash:                    '',
+  gold:                    '',
+  silver:                  '',
+  business:                '',
+  investments:             '',
+  other:                   '',
+  agriculture:             '',
+  irrigation:              'rain' as IrrigationMethod,
+  agricultureProduceType:  'WHEAT',
+  agricultureQuantity:     '',
+  agricultureQuantityUnit: 'WASQ',
+  livestockCounts:         { ...DEFAULT_LIVESTOCK_COUNTS },
+  debts:                   '',
+  currency:                'NGN',
+  hawlMet:                 true,
+  engineResult:            null,
+  isCalculating:           false,
 };
 
 export const useZakatStore = create<ZakatState>((set) => ({
   ...INITIAL_STATE,
 
-  setSelectedTypes:  (types)          => set({ selectedTypes: types }),
-  setField:          (field, value)   => set((s) => ({ ...s, [field]: value })),
-  setIrrigation:     (method)         => set({ irrigation: method }),
+  setSelectedTypes:           (types)          => set({ selectedTypes: types }),
+  setField:                   (field, value)   => set((s) => ({ ...s, [field]: value })),
+  setIrrigation:              (method)         => set({ irrigation: method }),
+  setAgricultureProduceType:  (produceType)    => set({ agricultureProduceType: produceType }),
+  setAgricultureQuantity:     (quantity)       => set({ agricultureQuantity: quantity }),
+  setAgricultureQuantityUnit: (unit)           => set({ agricultureQuantityUnit: unit }),
 
   /** Set the count for a single animal type without affecting others */
   setLivestockCount: (animal, count)  => set((s) => ({
