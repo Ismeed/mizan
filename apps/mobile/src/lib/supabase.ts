@@ -13,7 +13,11 @@
  * • persistSession: true    — Session survives app restarts.
  * • detectSessionInUrl: false — Disabled for native app (OAuth handled manually).
  */
-import 'react-native-url-polyfill/auto';
+try {
+  require('react-native-url-polyfill/auto');
+} catch {
+  // Global URL is natively supported in Hermes / Expo SDK 54
+}
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { createClient } from '@supabase/supabase-js';
 import type { Database } from '../types/database.types';
