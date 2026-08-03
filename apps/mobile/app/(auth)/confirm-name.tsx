@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View, Text, StyleSheet, TouchableOpacity,
   KeyboardAvoidingView, Platform, ScrollView,
@@ -13,50 +13,65 @@ import { colors } from '../../src/constants/colors';
 import { typography } from '../../src/constants/typography';
 import { spacing, borderRadius } from '../../src/constants/spacing';
 import { useAuth } from '../../src/hooks/useAuth';
+import { useAuthStore } from '../../src/stores/auth.store';
+import { resolveGoogleFirstName } from '../../src/services/auth.supabase.service';
+import { profileService } from '../../src/services/profile.service';
 
 export default function ConfirmNameScreen() {
   const router = useRouter();
-  const { googleName, googleEmail, googleId, profilePic } = useLocalSearchParams<{
-    googleName?:  string;
-    googleEmail?: string;
-    googleId?:    string;
-    profilePic?:  string;
-  }>();
+  const { googleName } = useLocalSearchParams<{ googleName?: string }>();
 
-  const { signInWithGoogle, confirmName, isLoading, error } = useAuth();
-  const [name,       setName]       = useState(googleName ?? '');
+  const { confirmName, isLoading, error } = useAuth();
+  const { session, user, profile }        = useAuthStore();
+
+  // Requirement 4: Route Protection — Require an authenticated Supabase session & user
+  useEffect(() => {
+    if (!session || !user) {
+      router.replace('/(auth)');
+    }
+  }, [session, user]);
+
+  // Requirement 5: Resolve proposed initial name (given_name → first_name → full_name → name → user_metadata → params)
+  const resolvedInitial =
+    resolveGoogleFirstName(user) ||
+    googleName ||
+    profile?.firstName ||
+    '';
+
+  const [name, setName]             = useState(resolvedInitial);
   const [localError, setLocalError] = useState<string | null>(null);
 
+  // Sync state if user loads after mount
+  useEffect(() => {
+    if (user && !name) {
+      const best = resolveGoogleFirstName(user) || googleName || '';
+      if (best) setName(best);
+    }
+  }, [user, googleName]);
+
+  if (!session || !user) {
+    return null; // Suppress rendering if unauthenticated; route guard redirects to /(auth)
+  }
+
+  // Requirement 6: If no name exists after Google auth, allow empty editable field, but require user to enter a value before continuing
   const handleContinue = async () => {
     const trimmed = name.trim();
     if (!trimmed || trimmed.length < 2) {
-      setLocalError('Please enter your full name (at least 2 characters).');
+      setLocalError('Please enter your first name (at least 2 characters).');
       return;
     }
     setLocalError(null);
 
-    let ok: boolean;
-
-    if (googleId && googleEmail) {
-      // Google flow: complete sign-in + save name
-      ok = await signInWithGoogle({
-        googleId:   googleId,
-        email:      googleEmail,
-        name:       trimmed,
-        profilePic: profilePic,
-      });
-      if (ok) {
+    try {
+      const updatedProfile = await profileService.completeOnboarding(trimmed);
+      if (updatedProfile) {
+        useAuthStore.getState().setProfile(updatedProfile);
+      } else {
         await confirmName(trimmed);
       }
-    } else {
-      // Direct name confirmation (e.g. post-login name update)
-      ok = await confirmName(trimmed);
-    }
-
-    if (ok) {
       router.replace('/(auth)/onboarding');
-    } else {
-      setLocalError(error ?? 'Something went wrong. Please try again.');
+    } catch (err: any) {
+      setLocalError(err?.message ?? 'Failed to save name. Please try again.');
     }
   };
 

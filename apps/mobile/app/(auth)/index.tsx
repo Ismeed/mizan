@@ -1,19 +1,24 @@
-import React, { useRef } from 'react';
+import React, { useRef, useState } from 'react';
 import {
   View, Text, StyleSheet, TouchableOpacity,
-  Image, Animated, Linking,
+  Image, Animated, Linking, Alert, ActivityIndicator,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
+import Constants, { ExecutionEnvironment } from 'expo-constants';
 import { SafeScreen } from '../../src/components/layout/SafeScreen';
 import { Logo } from '../../src/components/ui/Logo';
 import { colors } from '../../src/constants/colors';
 import { typography } from '../../src/constants/typography';
 import { spacing, borderRadius } from '../../src/constants/spacing';
+import { authSupabaseService, googleUserNeedsNameConfirmation, resolveGoogleFirstName } from '../../src/services/auth.supabase.service';
+import { useAuthStore } from '../../src/stores/auth.store';
 
 export default function AuthLandingScreen() {
   const router = useRouter();
+  const [isGoogleLoading, setIsGoogleLoading] = useState(false);
+  const [errorMsg, setErrorMsg]                 = useState<string | null>(null);
 
   // Subtle entrance animation
   const fadeAnim  = useRef(new Animated.Value(0)).current;
@@ -25,6 +30,58 @@ export default function AuthLandingScreen() {
       Animated.timing(slideAnim, { toValue: 0, duration: 600, useNativeDriver: true }),
     ]).start();
   }, []);
+
+  const handleGooglePress = async () => {
+    setErrorMsg(null);
+
+    // Requirement 7 & 8: Expo Go development environment detection
+    const isExpoGo =
+      Constants.executionEnvironment === ExecutionEnvironment.StoreClient ||
+      (Constants as any).appOwnership === 'expo';
+
+    if (isExpoGo) {
+      Alert.alert(
+        'Expo Go Environment',
+        'Google sign-in requires the MIZAN development build. Email OTP remains available in Expo Go.'
+      );
+      return;
+    }
+
+    // Requirement 2: Start Supabase Google OAuth flow
+    setIsGoogleLoading(true);
+    try {
+      const result = await authSupabaseService.signInWithGoogle();
+
+      // Requirement 3: If OAuth is cancelled, dismissed, or fails — remain on screen, show error, no session created
+      if (!result || !result.session || !result.user) {
+        setErrorMsg('Google sign-in was cancelled or dismissed.');
+        return;
+      }
+
+      // Requirement 2: Process callback, set store session, verify user exists
+      useAuthStore.getState().setSession(result.session, result.profile);
+
+      // Requirement 1 & 2: Only navigate after valid authenticated session exists
+      const user = result.user;
+      const needsConfirm = googleUserNeedsNameConfirmation(user);
+
+      if (needsConfirm) {
+        const proposedName = resolveGoogleFirstName(user);
+        router.push({
+          pathname: '/(auth)/confirm-name',
+          params: { googleName: proposedName },
+        });
+      } else if (result.profile?.onboardingCompleted) {
+        router.replace('/(tabs)');
+      } else {
+        router.replace('/(auth)/onboarding');
+      }
+    } catch (err: any) {
+      setErrorMsg(err?.message ?? 'Google sign-in failed. Please try again.');
+    } finally {
+      setIsGoogleLoading(false);
+    }
+  };
 
   return (
     <LinearGradient
@@ -51,19 +108,29 @@ export default function AuthLandingScreen() {
         {/* ── Auth Buttons ── */}
         <Animated.View style={[styles.actions, { opacity: fadeAnim }]}>
 
+          {errorMsg ? (
+            <View style={styles.errorBox}>
+              <Text style={styles.errorText}>{errorMsg}</Text>
+            </View>
+          ) : null}
+
           {/* Google Sign-In */}
           <TouchableOpacity
             style={styles.googleBtn}
             activeOpacity={0.85}
-            onPress={() => router.push('/(auth)/confirm-name')}
-            // NOTE: In production, wire this to expo-auth-session Google flow
-            // For now navigates to confirm-name with a placeholder — Google ID token
-            // would be passed via params after OAuth completes
+            onPress={handleGooglePress}
+            disabled={isGoogleLoading}
           >
             <View style={styles.googleIconBg}>
-              <Ionicons name="logo-google" size={20} color="#fff" />
+              {isGoogleLoading ? (
+                <ActivityIndicator size="small" color="#fff" />
+              ) : (
+                <Ionicons name="logo-google" size={20} color="#fff" />
+              )}
             </View>
-            <Text style={styles.googleBtnText}>Continue with Google</Text>
+            <Text style={styles.googleBtnText}>
+              {isGoogleLoading ? 'Connecting to Google...' : 'Continue with Google'}
+            </Text>
             <View style={styles.recommendedBadge}>
               <Text style={styles.recommendedText}>Recommended</Text>
             </View>
@@ -244,5 +311,19 @@ const styles = StyleSheet.create({
     fontFamily: typography.bodySemiBold,
     fontSize:   11,
     color:      colors.secondary,
+  },
+  errorBox: {
+    backgroundColor: 'rgba(127,29,29,0.35)',
+    borderWidth:     1,
+    borderColor:     '#7F1D1D',
+    padding:         spacing.sm,
+    borderRadius:    borderRadius.sm,
+    marginBottom:    spacing.xs,
+  },
+  errorText: {
+    fontFamily: typography.body,
+    fontSize:   13,
+    color:      '#F87171',
+    textAlign:  'center',
   },
 });

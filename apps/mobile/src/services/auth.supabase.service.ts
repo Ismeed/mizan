@@ -33,12 +33,14 @@ export interface AuthResult {
 
 /**
  * Extract the best available first name from Supabase user metadata.
- * Priority: given_name → first_name → first word of full_name/name → ''
+ * Priority: given_name → first_name → full_name → name → user_metadata
  */
-export function resolveGoogleFirstName(user: User): string {
-  const meta = user.user_metadata ?? {};
-  if (meta.given_name)               return String(meta.given_name).trim();
-  if (meta.first_name)               return String(meta.first_name).trim();
+export function resolveGoogleFirstName(userOrMeta: User | Record<string, any> | null | undefined): string {
+  if (!userOrMeta) return '';
+  const meta = (userOrMeta as any)?.user_metadata ?? userOrMeta;
+
+  if (meta.given_name) return String(meta.given_name).trim();
+  if (meta.first_name) return String(meta.first_name).trim();
   if (meta.full_name) {
     const first = String(meta.full_name).trim().split(' ')[0];
     if (first) return first;
@@ -51,7 +53,8 @@ export function resolveGoogleFirstName(user: User): string {
 }
 
 /** Determine whether a Google user needs first-name confirmation. */
-export function googleUserNeedsNameConfirmation(user: User): boolean {
+export function googleUserNeedsNameConfirmation(user: User | null | undefined): boolean {
+  if (!user) return true;
   const firstName = resolveGoogleFirstName(user);
   return !firstName || firstName.length < 2;
 }
