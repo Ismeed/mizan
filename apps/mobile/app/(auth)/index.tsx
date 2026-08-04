@@ -15,6 +15,8 @@ import { spacing, borderRadius } from '../../src/constants/spacing';
 import { authSupabaseService, googleUserNeedsNameConfirmation, resolveGoogleFirstName } from '../../src/services/auth.supabase.service';
 import { useAuthStore } from '../../src/stores/auth.store';
 
+import { Platform } from 'react-native';
+
 export default function AuthLandingScreen() {
   const router = useRouter();
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
@@ -34,34 +36,40 @@ export default function AuthLandingScreen() {
   const handleGooglePress = async () => {
     setErrorMsg(null);
 
-    // Requirement 7 & 8: Expo Go development environment detection
+    // Requirement 7 & 8: Expo Go detection for Native only (Web browser uses redirect)
     const isExpoGo =
-      Constants.executionEnvironment === ExecutionEnvironment.StoreClient ||
-      (Constants as any).appOwnership === 'expo';
+      Platform.OS !== 'web' &&
+      (Constants.executionEnvironment === ExecutionEnvironment.StoreClient ||
+       (Constants as any).appOwnership === 'expo');
 
     if (isExpoGo) {
       Alert.alert(
         'Expo Go Environment',
-        'Google sign-in requires the MIZAN development build. Email OTP remains available in Expo Go.'
+        'Google sign-in requires the MIZAN development build or Expo Web. Email OTP remains available in Expo Go.'
       );
       return;
     }
 
-    // Requirement 2: Start Supabase Google OAuth flow
+    // Requirement 2 & 3: Start Supabase Google OAuth flow
     setIsGoogleLoading(true);
     try {
       const result = await authSupabaseService.signInWithGoogle();
 
-      // Requirement 3: If OAuth is cancelled, dismissed, or fails — remain on screen, show error, no session created
+      // On Web, browser redirects directly
+      if (Platform.OS === 'web' && !result) {
+        return;
+      }
+
+      // Requirement 3 & 7: If OAuth is cancelled, dismissed, or fails — remain on screen, show error, no session created
       if (!result || !result.session || !result.user) {
         setErrorMsg('Google sign-in was cancelled or dismissed.');
         return;
       }
 
-      // Requirement 2: Process callback, set store session, verify user exists
+      // Requirement 2 & 6: Process callback, set store session, verify user exists
       useAuthStore.getState().setSession(result.session, result.profile);
 
-      // Requirement 1 & 2: Only navigate after valid authenticated session exists
+      // Requirement 4 & 6: Only navigate after valid authenticated session exists
       const user = result.user;
       const needsConfirm = googleUserNeedsNameConfirmation(user);
 

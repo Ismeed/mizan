@@ -1,0 +1,12 @@
+{
+  "expo": {
+    "extra": {
+      "eas": {
+        "projectId": "ab6b8c30-6d95-43d3-86fe-5bb1ce20f6cc"
+      }
+    },
+    "android": {
+      "package": "com.ismeed.mizanmonorepo"
+    }
+  }
+}

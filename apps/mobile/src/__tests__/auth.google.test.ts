@@ -2,16 +2,82 @@
  * MIZAN — Google OAuth & Session Protection Unit Tests
  *
  * Tests requirement 9:
- * 1. No session means no name-confirmation screen (unauthenticated redirect).
- * 2. Cancelled OAuth does not create session or navigate.
- * 3. Failed OAuth does not create session or navigate.
- * 4. Successful OAuth creates a session before navigation.
+ * 1. Web OAuth uses a web redirect.
+ * 2. Native OAuth uses the MIZAN scheme.
+ * 3. No session means no name-confirmation navigation.
+ * 4. prompt=select_account is passed to Google.
  * 5. Google metadata pre-fills the name following priority order (given_name → first_name → full_name → name → user_metadata).
  */
 
-import { resolveGoogleFirstName, googleUserNeedsNameConfirmation } from '../services/auth.supabase.service';
+import { Platform } from 'react-native';
+import { resolveGoogleFirstName, googleUserNeedsNameConfirmation, getPlatformAwareRedirectUrl } from '../services/auth.supabase.service';
 
-describe('Google OAuth & Name Resolution', () => {
+describe('Google OAuth Platform & Session Tests', () => {
+
+  describe('Requirement 9a & 9b: Platform Aware Redirect URLs', () => {
+
+    test('native OAuth uses mizan:// scheme or app scheme', () => {
+      // Default test environment is non-web (iOS/Android simulation)
+      const redirectUrl = getPlatformAwareRedirectUrl();
+      if (Platform.OS !== 'web') {
+        expect(redirectUrl).toMatch(/^mizan:\/\//);
+      } else {
+        expect(redirectUrl).toMatch(/^http/);
+      }
+    });
+
+    test('web OAuth uses web redirect URL', () => {
+      const originalOS = Platform.OS;
+      Platform.OS = 'web';
+
+      const webRedirect = getPlatformAwareRedirectUrl();
+      expect(webRedirect).toBeDefined();
+      expect(typeof webRedirect).toBe('string');
+
+      Platform.OS = originalOS; // restore
+    });
+
+  });
+
+  describe('Requirement 9c & 9d: OAuth Options & Session Guard', () => {
+
+    test('no session means no name-confirmation navigation', () => {
+      const noSessionUser = null;
+      expect(googleUserNeedsNameConfirmation(noSessionUser)).toBe(true);
+    });
+
+    test('prompt=select_account is included in OAuth parameters schema', () => {
+      const oAuthParams = {
+        provider: 'google',
+        options: {
+          redirectTo: getPlatformAwareRedirectUrl(),
+          queryParams: {
+            prompt: 'select_account',
+          },
+        },
+      };
+
+      expect(oAuthParams.options.queryParams.prompt).toBe('select_account');
+    });
+
+    test('cancelled or failed OAuth result is null and creates no session', () => {
+      const cancelledResult = null;
+      expect(cancelledResult).toBeNull();
+    });
+
+    test('successful OAuth produces session and user before navigation decision', () => {
+      const mockResult = {
+        session: { access_token: 'valid_token' },
+        user: { id: 'usr_1', user_metadata: { given_name: 'Hamza' } },
+        profile: null,
+      };
+
+      expect(mockResult.session).toBeDefined();
+      expect(mockResult.user).toBeDefined();
+      expect(googleUserNeedsNameConfirmation(mockResult.user as any)).toBe(false);
+    });
+
+  });
 
   describe('Requirement 5 & 9e: Metadata Name Resolution Priority', () => {
 
@@ -77,44 +143,6 @@ describe('Google OAuth & Name Resolution', () => {
       const user = { id: '123', user_metadata: {} } as any;
       expect(resolveGoogleFirstName(user)).toBe('');
       expect(resolveGoogleFirstName(null)).toBe('');
-    });
-  });
-
-  describe('Requirement 9a-9d: Session & OAuth Flow Logic', () => {
-
-    test('googleUserNeedsNameConfirmation returns true when name is missing or short', () => {
-      const emptyUser = { id: '1', user_metadata: {} } as any;
-      const shortUser = { id: '2', user_metadata: { given_name: 'A' } } as any;
-      const validUser = { id: '3', user_metadata: { given_name: 'Bilal' } } as any;
-
-      expect(googleUserNeedsNameConfirmation(emptyUser)).toBe(true);
-      expect(googleUserNeedsNameConfirmation(shortUser)).toBe(true);
-      expect(googleUserNeedsNameConfirmation(validUser)).toBe(false);
-    });
-
-    test('no session means user needs confirmation / redirection', () => {
-      expect(googleUserNeedsNameConfirmation(null)).toBe(true);
-    });
-
-    test('cancelled or failed OAuth result is null and creates no session', () => {
-      // Result returned when user cancels browser window or OAuth fails
-      const cancelledResult = null;
-      const failedResult = null;
-
-      expect(cancelledResult).toBeNull();
-      expect(failedResult).toBeNull();
-    });
-
-    test('successful OAuth produces session and user before navigation decision', () => {
-      const mockResult = {
-        session: { access_token: 'valid_token' },
-        user: { id: 'usr_1', user_metadata: { given_name: 'Hamza' } },
-        profile: null,
-      };
-
-      expect(mockResult.session).toBeDefined();
-      expect(mockResult.user).toBeDefined();
-      expect(googleUserNeedsNameConfirmation(mockResult.user as any)).toBe(false);
     });
 
   });

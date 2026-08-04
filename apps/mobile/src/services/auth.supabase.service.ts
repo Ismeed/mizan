@@ -8,10 +8,12 @@
  * • Never logs tokens, OTPs, or keys.
  * • Never accepts a client-supplied user ID for auth operations.
  * • Google Client Secret never appears here (handled by Supabase + Google Cloud).
- * • Redirect URL generated through Expo Linking, never hardcoded.
+ * • Redirect URL generated through Expo Linking / AuthSession, never hardcoded.
  */
+import { Platform } from 'react-native';
 import * as Linking from 'expo-linking';
 import * as WebBrowser from 'expo-web-browser';
+import { makeRedirectUri } from 'expo-auth-session';
 import { supabase } from '../lib/supabase';
 import { profileService } from './profile.service';
 import { preferenceService } from './preference.service';
@@ -30,6 +32,21 @@ export interface AuthResult {
 }
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
+
+/**
+ * Generate platform-aware redirect URL.
+ * Native: mizan://auth/callback
+ * Web: http://localhost:8081/auth/callback or current window origin
+ */
+export function getPlatformAwareRedirectUrl(): string {
+  if (Platform.OS === 'web') {
+    if (typeof window !== 'undefined' && window.location?.origin) {
+      return `${window.location.origin}/auth/callback`;
+    }
+    return makeRedirectUri({ path: 'auth/callback' });
+  }
+  return Linking.createURL('auth/callback');
+}
 
 /**
  * Extract the best available first name from Supabase user metadata.
@@ -86,30 +103,53 @@ export const authSupabaseService = {
   // ── Google OAuth ────────────────────────────────────────────────────────────
 
   /**
-   * Start Google OAuth flow using Supabase Auth + Expo WebBrowser.
-   * The redirect URL is generated from the app scheme, never hardcoded.
-   *
-   * Flow:
-   *   1. Generate redirect URL (mizan://auth/callback)
-   *   2. Get Supabase OAuth URL
-   *   3. Open in system browser
-   *   4. Receive callback
-   *   5. Exchange for session
-   *   6. Return { session, user, profile }
+   * Start Google OAuth flow using Supabase Auth.
+   * Platform-aware:
+   *   - Native: Uses PKCE + WebBrowser.openAuthSessionAsync with mizan:// scheme
+   *   - Web: Redirects browser directly using window origin
    */
   async signInWithGoogle(): Promise<AuthResult | null> {
-    // Generate the redirect URL from the registered app scheme
-    const redirectTo = Linking.createURL('auth/callback');
+    const redirectTo = getPlatformAwareRedirectUrl();
 
+    if (__DEV__) {
+      console.log('[GoogleOAuth] Generated Redirect URL:', redirectTo);
+    }
+
+    // Web handling
+    if (Platform.OS === 'web') {
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+          redirectTo,
+          queryParams: {
+            prompt: 'select_account',
+          },
+        },
+      });
+
+      if (error) {
+        if (__DEV__) console.log('[GoogleOAuth] OAuth Result Status: ERROR');
+        throw new Error(error.message ?? 'Failed to start Google authentication');
+      }
+
+      if (__DEV__) console.log('[GoogleOAuth] OAuth Result Status: REDIRECTING_WEB');
+      return null; // Browser is redirecting
+    }
+
+    // Native handling (Android/iOS)
     const { data, error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: {
         redirectTo,
         skipBrowserRedirect: true,
+        queryParams: {
+          prompt: 'select_account',
+        },
       },
     });
 
     if (error || !data?.url) {
+      if (__DEV__) console.log('[GoogleOAuth] OAuth Result Status: ERROR');
       throw new Error(error?.message ?? 'Failed to start Google authentication');
     }
 
@@ -117,13 +157,14 @@ export const authSupabaseService = {
     const result = await WebBrowser.openAuthSessionAsync(data.url, redirectTo);
 
     if (result.type !== 'success' || !result.url) {
-      return null; // User cancelled
+      if (__DEV__) console.log('[GoogleOAuth] OAuth Result Status: CANCELLED');
+      return null; // User cancelled or dismissed
     }
 
     // Extract auth tokens from the callback URL
-    const url   = new URL(result.url);
-    const code  = url.searchParams.get('code');
-    const hash  = result.url.split('#')[1] ?? '';
+    const url    = new URL(result.url);
+    const code   = url.searchParams.get('code');
+    const hash   = result.url.split('#')[1] ?? '';
     const params = new URLSearchParams(hash);
 
     // Try code-based exchange first (PKCE), then implicit hash params
@@ -131,9 +172,17 @@ export const authSupabaseService = {
       const { data: exchangeData, error: exchangeError } =
         await supabase.auth.exchangeCodeForSession(code);
       if (exchangeError || !exchangeData.session) {
+        if (__DEV__) console.log('[GoogleOAuth] OAuth Result Status: EXCHANGE_FAILED');
         throw new Error(exchangeError?.message ?? 'Failed to exchange code for session');
       }
       const profile = await profileService.getCurrentProfile();
+
+      if (__DEV__) {
+        console.log('[GoogleOAuth] OAuth Result Status: SUCCESS');
+        console.log('[GoogleOAuth] Session Exists:', !!exchangeData.session);
+        console.log('[GoogleOAuth] User Metadata Exists:', !!exchangeData.user?.user_metadata);
+      }
+
       return { session: exchangeData.session, user: exchangeData.user, profile };
     }
 
@@ -143,12 +192,21 @@ export const authSupabaseService = {
       const { data: sessionData, error: sessionError } =
         await supabase.auth.setSession({ access_token: accessToken, refresh_token: refreshToken });
       if (sessionError || !sessionData.session) {
+        if (__DEV__) console.log('[GoogleOAuth] OAuth Result Status: TOKEN_SET_FAILED');
         throw new Error(sessionError?.message ?? 'Failed to establish session from tokens');
       }
       const profile = await profileService.getCurrentProfile();
+
+      if (__DEV__) {
+        console.log('[GoogleOAuth] OAuth Result Status: SUCCESS');
+        console.log('[GoogleOAuth] Session Exists:', !!sessionData.session);
+        console.log('[GoogleOAuth] User Metadata Exists:', !!sessionData.user?.user_metadata);
+      }
+
       return { session: sessionData.session, user: sessionData.user!, profile };
     }
 
+    if (__DEV__) console.log('[GoogleOAuth] OAuth Result Status: NO_TOKENS');
     throw new Error('Google OAuth callback did not return usable tokens');
   },
 
@@ -181,18 +239,17 @@ export const authSupabaseService = {
   },
 
   /**
-   * Verify the 6-digit OTP entered by the user.
-   * On success: creates/updates profile, creates default preferences.
+   * Verify an email OTP.
+   * On success: returns session + user + profile.
+   * Auto-provisions default preferences if they don't exist yet.
    */
   async verifyEmailOtp(opts: {
-    email:     string;
-    token:     string;
-    firstName: string;
-    surname:   string;
+    email: string;
+    otp:   string;
   }): Promise<AuthResult> {
     const { data, error } = await supabase.auth.verifyOtp({
       email: opts.email,
-      token: opts.token,
+      token: opts.otp,
       type:  'email',
     });
 
@@ -200,72 +257,62 @@ export const authSupabaseService = {
       throw new Error(error?.message ?? 'Invalid or expired verification code');
     }
 
-    // Upsert profile with confirmed names
-    await profileService.upsertCurrentProfile({
-      email:               opts.email,
-      firstName:           opts.firstName,
-      surname:             opts.surname,
-      onboardingCompleted: true,
-    }).catch((e) => console.warn('[AuthService] Profile upsert warning:', e?.message));
-
-    // Ensure preferences row exists
-    await preferenceService.createDefaultPreferences(data.user.id)
-      .catch((e) => console.warn('[AuthService] Preferences init warning:', e?.message));
+    // Auto-provision default preferences
+    await preferenceService.createDefaultPreferences(data.user.id);
 
     const profile = await profileService.getCurrentProfile();
     return { session: data.session, user: data.user, profile };
   },
 
-  // ── Google name confirmation ─────────────────────────────────────────────────
+  // ── Session Operations ──────────────────────────────────────────────────────
 
-  /**
-   * Called after Google sign-in when the user confirms or edits their first name.
-   * Updates Supabase user metadata and the public profiles table.
-   */
-  async confirmGoogleName(firstName: string): Promise<MizanProfile | null> {
-    const trimmed = firstName.trim();
-    if (!trimmed || trimmed.length < 2) {
-      throw new Error('First name must be at least 2 characters');
+  /** Explicit user-initiated sign out. */
+  async logout(): Promise<void> {
+    try {
+      await supabase.auth.signOut();
+    } catch {
+      // Ignore network errors on sign out — local state will be cleared anyway
     }
+  },
 
-    // Update Supabase user metadata
-    await supabase.auth.updateUser({
-      data: { first_name: trimmed },
-    });
+  /** Legacy compat wrappers */
+  googleSignIn: async (_data: any): Promise<{ user: any; token: string }> => {
+    const result = await authSupabaseService.signInWithGoogle();
+    if (!result) throw new Error('Google authentication failed');
+    return {
+      user:  result.user,
+      token: result.session.access_token,
+    };
+  },
 
+  confirmName: async (name: string): Promise<void> => {
+    await profileService.updateFirstName(name);
+  },
+
+  completeOnboarding: async (prefs: Record<string, any>): Promise<void> => {
     const { data: { session } } = await supabase.auth.getSession();
-    if (!session) throw new Error('No active session during name confirmation');
-
-    // Get surname from metadata if available
-    const meta    = session.user.user_metadata ?? {};
-    const surname = meta.family_name ? String(meta.family_name).trim() : '';
-
-    // Update profile and complete onboarding
-    const profile = await profileService.completeOnboarding(trimmed, surname || undefined);
-    await preferenceService.createDefaultPreferences(session.user.id).catch(() => {});
-
-    return profile;
+    if (session) {
+      await preferenceService.updatePreferences({
+        languageTag:  prefs.language,
+        madhhabId:    prefs.madhhab,
+        currencyCode: prefs.currency,
+      });
+      await profileService.upsertCurrentProfile({ onboardingCompleted: true });
+    }
   },
 
-  // ── Explicit logout ──────────────────────────────────────────────────────────
-
-  /**
-   * Sign the user out of Supabase.
-   * ONLY call this from explicit user-initiated logout actions.
-   * NEVER call from feature error handlers.
-   */
-  async signOut(): Promise<void> {
-    await supabase.auth.signOut();
+  updateProfile: async (data: Record<string, any>): Promise<any> => {
+    return profileService.upsertCurrentProfile({
+      firstName: data.name,
+    });
   },
 
-  // ── Auth state subscription ──────────────────────────────────────────────────
+  forgotPassword: async (email: string): Promise<void> => {
+    await supabase.auth.resetPasswordForEmail(email);
+  },
 
-  /**
-   * Subscribe to Supabase auth state changes.
-   * Returns an unsubscribe function — call it in useEffect cleanup.
-   */
-  onAuthStateChange(callback: (event: string, session: Session | null) => void) {
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(callback);
-    return () => subscription.unsubscribe();
+  resetPassword: async (email: string, token: string, newPassword: string): Promise<void> => {
+    await supabase.auth.verifyOtp({ email, token, type: 'recovery' });
+    await supabase.auth.updateUser({ password: newPassword });
   },
 };
