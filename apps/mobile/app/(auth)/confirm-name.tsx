@@ -14,7 +14,7 @@ import { typography } from '../../src/constants/typography';
 import { spacing, borderRadius } from '../../src/constants/spacing';
 import { useAuth } from '../../src/hooks/useAuth';
 import { useAuthStore } from '../../src/stores/auth.store';
-import { resolveGoogleFirstName } from '../../src/services/auth.supabase.service';
+import { resolveGoogleFirstName, resolveGoogleFullName } from '../../src/services/auth.supabase.service';
 import { profileService } from '../../src/services/profile.service';
 
 export default function ConfirmNameScreen() {
@@ -31,10 +31,12 @@ export default function ConfirmNameScreen() {
     }
   }, [session, user]);
 
-  // Requirement 5: Resolve proposed initial name (given_name → first_name → full_name → name → user_metadata → params)
+  // Requirement 5: Resolve proposed initial name (Google full name/first name → params → profile)
   const resolvedInitial =
-    resolveGoogleFirstName(user) ||
     googleName ||
+    resolveGoogleFullName(user) ||
+    resolveGoogleFirstName(user) ||
+    profile?.displayName ||
     profile?.firstName ||
     '';
 
@@ -44,7 +46,7 @@ export default function ConfirmNameScreen() {
   // Sync state if user loads after mount
   useEffect(() => {
     if (user && !name) {
-      const best = resolveGoogleFirstName(user) || googleName || '';
+      const best = googleName || resolveGoogleFullName(user) || resolveGoogleFirstName(user) || '';
       if (best) setName(best);
     }
   }, [user, googleName]);
@@ -53,7 +55,7 @@ export default function ConfirmNameScreen() {
     return null; // Suppress rendering if unauthenticated; route guard redirects to /(auth)
   }
 
-  // Requirement 6: If no name exists after Google auth, allow empty editable field, but require user to enter a value before continuing
+  // Requirement 6: Save confirmed name (first name & surname) and proceed to preference onboarding
   const handleContinue = async () => {
     const trimmed = name.trim();
     if (!trimmed || trimmed.length < 2) {
@@ -63,7 +65,11 @@ export default function ConfirmNameScreen() {
     setLocalError(null);
 
     try {
-      const updatedProfile = await profileService.completeOnboarding(trimmed);
+      const parts     = trimmed.split(' ');
+      const firstName = parts[0] || '';
+      const surname   = parts.slice(1).join(' ') || '';
+
+      const updatedProfile = await profileService.updateNames(firstName, surname);
       if (updatedProfile) {
         useAuthStore.getState().setProfile(updatedProfile);
       } else {

@@ -10,7 +10,7 @@
  */
 
 import { Platform } from 'react-native';
-import { resolveGoogleFirstName, googleUserNeedsNameConfirmation, getPlatformAwareRedirectUrl } from '../services/auth.supabase.service';
+import { resolveGoogleFirstName, resolveGoogleFullName, googleUserNeedsNameConfirmation, getPlatformAwareRedirectUrl } from '../services/auth.supabase.service';
 
 describe('Google OAuth Platform & Session Tests', () => {
 
@@ -95,6 +95,18 @@ describe('Google OAuth Platform & Session Tests', () => {
       expect(resolveGoogleFirstName(user)).toBe('Ibrahim');
     });
 
+    test('pre-fills full name from given_name + family_name when present', () => {
+      const user = {
+        id: '123',
+        user_metadata: {
+          given_name: 'Muhammad',
+          family_name: 'Ibrahim',
+        },
+      } as any;
+
+      expect(resolveGoogleFullName(user)).toBe('Muhammad Ibrahim');
+    });
+
     test('falls back to first_name when given_name is missing', () => {
       const user = {
         id: '123',
@@ -117,6 +129,7 @@ describe('Google OAuth Platform & Session Tests', () => {
       } as any;
 
       expect(resolveGoogleFirstName(user)).toBe('Zayd');
+      expect(resolveGoogleFullName(user)).toBe('Zayd ibn Harithah');
     });
 
     test('falls back to first word of name when full_name is missing', () => {
@@ -143,6 +156,7 @@ describe('Google OAuth Platform & Session Tests', () => {
       const user = { id: '123', user_metadata: {} } as any;
       expect(resolveGoogleFirstName(user)).toBe('');
       expect(resolveGoogleFirstName(null)).toBe('');
+      expect(resolveGoogleFullName(null)).toBe('');
     });
 
   });

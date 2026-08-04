@@ -12,7 +12,7 @@ import { Logo } from '../../src/components/ui/Logo';
 import { colors } from '../../src/constants/colors';
 import { typography } from '../../src/constants/typography';
 import { spacing, borderRadius } from '../../src/constants/spacing';
-import { authSupabaseService, googleUserNeedsNameConfirmation, resolveGoogleFirstName } from '../../src/services/auth.supabase.service';
+import { authSupabaseService, googleUserNeedsNameConfirmation, resolveGoogleFirstName, resolveGoogleFullName } from '../../src/services/auth.supabase.service';
 import { useAuthStore } from '../../src/stores/auth.store';
 
 import { Platform } from 'react-native';
@@ -69,20 +69,18 @@ export default function AuthLandingScreen() {
       // Requirement 2 & 6: Process callback, set store session, verify user exists
       useAuthStore.getState().setSession(result.session, result.profile);
 
-      // Requirement 4 & 6: Only navigate after valid authenticated session exists
       const user = result.user;
-      const needsConfirm = googleUserNeedsNameConfirmation(user);
 
-      if (needsConfirm) {
-        const proposedName = resolveGoogleFirstName(user);
+      // Returning user whose onboarding is complete goes directly to dashboard
+      if (result.profile?.onboardingCompleted) {
+        router.replace('/(tabs)');
+      } else {
+        // New user or un-onboarded user: always navigate to name-confirmation screen first
+        const proposedName = resolveGoogleFullName(user) || resolveGoogleFirstName(user);
         router.push({
           pathname: '/(auth)/confirm-name',
           params: { googleName: proposedName },
         });
-      } else if (result.profile?.onboardingCompleted) {
-        router.replace('/(tabs)');
-      } else {
-        router.replace('/(auth)/onboarding');
       }
     } catch (err: any) {
       setErrorMsg(err?.message ?? 'Google sign-in failed. Please try again.');

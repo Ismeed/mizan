@@ -48,10 +48,13 @@ function AuthGuard() {
       return;
     }
 
-    const segs         = (segments as string[]) ?? [];
-    const inAuth       = segs[0] === '(auth)';
-    const inOnboarding = inAuth && segs[1] === 'onboarding';
-    const inSplash     = inAuth && segs[1] === 'splash';
+    const segs            = (segments as string[]) ?? [];
+    const inAuth          = segs[0] === '(auth)';
+    const inOnboarding    = inAuth && segs[1] === 'onboarding';
+    const inSplash        = inAuth && segs[1] === 'splash';
+    // confirm-name is a legitimate stop on the onboarding journey — the
+    // AuthGuard must NOT redirect away from it when status is ONBOARDING_REQUIRED.
+    const inConfirmName   = inAuth && segs[1] === 'confirm-name';
 
     // ── Gate 2: Unauthenticated → auth landing ─────────────────────────────
     if (status === 'UNAUTHENTICATED' || status === 'SESSION_REVOKED') {
@@ -63,7 +66,8 @@ function AuthGuard() {
 
     // ── Gate 3: Onboarding required ────────────────────────────────────────
     if (status === 'ONBOARDING_REQUIRED' || (status === 'AUTHENTICATED' && !onboardingComplete)) {
-      if (!inOnboarding && !inSplash) {
+      // Allow confirm-name and onboarding screens during the onboarding journey.
+      if (!inOnboarding && !inSplash && !inConfirmName) {
         router.replace('/(auth)/onboarding');
       }
       return;

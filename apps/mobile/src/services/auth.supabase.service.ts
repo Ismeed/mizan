@@ -69,6 +69,27 @@ export function resolveGoogleFirstName(userOrMeta: User | Record<string, any> | 
   return '';
 }
 
+/**
+ * Extract full name (first name + surname) from Supabase user metadata.
+ * Priority: (given_name + family_name) → (first_name + surname/last_name) → full_name → name
+ */
+export function resolveGoogleFullName(userOrMeta: User | Record<string, any> | null | undefined): string {
+  if (!userOrMeta) return '';
+  const meta = (userOrMeta as any)?.user_metadata ?? userOrMeta;
+
+  const given = meta.given_name || meta.first_name || '';
+  const family = meta.family_name || meta.surname || meta.last_name || '';
+
+  if (given || family) {
+    return [String(given).trim(), String(family).trim()].filter(Boolean).join(' ');
+  }
+
+  if (meta.full_name) return String(meta.full_name).trim();
+  if (meta.name) return String(meta.name).trim();
+
+  return '';
+}
+
 /** Determine whether a Google user needs first-name confirmation. */
 export function googleUserNeedsNameConfirmation(user: User | null | undefined): boolean {
   if (!user) return true;
