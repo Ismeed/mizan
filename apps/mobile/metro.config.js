@@ -24,7 +24,6 @@ config.resolver.extraNodeModules = {
   '@mizan/shared': path.resolve(monorepoRoot, 'packages/shared'),
   'react':         path.resolve(monorepoRoot, 'node_modules/react'),
   'react-dom':     path.resolve(monorepoRoot, 'node_modules/react-dom'),
-  'react-native':  path.resolve(projectRoot, 'node_modules/react-native'),
 };
 
 module.exports = config;

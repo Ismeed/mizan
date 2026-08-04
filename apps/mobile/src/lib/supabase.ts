@@ -18,21 +18,14 @@ try {
 } catch {
   // Global URL is natively supported in Hermes / Expo SDK 54
 }
+import { Platform } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { createClient } from '@supabase/supabase-js';
 import type { Database } from '../types/database.types';
 
 // ── Validate environment configuration ───────────────────────────────────────
-const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL;
-const supabasePublishableKey = process.env.EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
-
-if (!supabaseUrl || !supabasePublishableKey) {
-  throw new Error(
-    '[Supabase] Missing environment configuration. ' +
-    'Ensure EXPO_PUBLIC_SUPABASE_URL and EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY ' +
-    'are set in apps/mobile/.env'
-  );
-}
+const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL ?? 'https://hobtpgryrvfhmvcwjgyj.supabase.co';
+const supabasePublishableKey = process.env.EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY ?? 'sbp_dummy_key';
 
 // ── Create and export the one singleton client ────────────────────────────────
 export const supabase = createClient<Database>(
@@ -43,7 +36,7 @@ export const supabase = createClient<Database>(
       storage:            AsyncStorage,
       autoRefreshToken:   true,
       persistSession:     true,
-      detectSessionInUrl: false,
+      detectSessionInUrl: Platform.OS === 'web',
     },
   }
 );
