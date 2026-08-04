@@ -24,7 +24,11 @@
         "backgroundColor": "#0D1F17"
       },
       "package": "com.mizan.app",
-      "softwareKeyboardLayoutMode": "resize"
+      "softwareKeyboardLayoutMode": "resize",
+      "permissions": [
+        "android.permission.USE_BIOMETRIC",
+        "android.permission.USE_FINGERPRINT"
+      ]
     },
     "web": {
       "favicon": "./assets/favicon.png"
@@ -36,6 +40,12 @@
       "expo-local-authentication",
       "expo-web-browser"
     ],
-    "scheme": "mizan"
+    "scheme": "mizan",
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "1f2f47e2-7a9d-4cd2-b6a5-b86b7a25ec52"
+      }
+    }
   }
 }

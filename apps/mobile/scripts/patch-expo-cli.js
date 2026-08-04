@@ -104,18 +104,19 @@ for (const patch of patches) {
   patchedCount++;
 }
 
-// Verify React 19 is installed correctly (deduped to monorepo root)
-const reactPkgPath = path.join(monorepoRoot, 'node_modules', 'react', 'package.json');
-if (fs.existsSync(reactPkgPath)) {
-  const reactVersion = JSON.parse(fs.readFileSync(reactPkgPath, 'utf8')).version;
-  if (!reactVersion.startsWith('19.')) {
-    console.error(`[patch-expo-cli] ⚠️  react@${reactVersion} found in apps/mobile/node_modules — expected 19.x`);
-    console.error('[patch-expo-cli]    Run: npm install --legacy-peer-deps from monorepo root');
-  } else {
-    console.log(`[patch-expo-cli] ✅ react@${reactVersion} correctly installed.`);
+// Verify React 19 is installed correctly
+try {
+  const reactPkgPath = path.join(monorepoRoot, 'node_modules', 'react', 'package.json');
+  if (fs.existsSync(reactPkgPath)) {
+    const reactVersion = JSON.parse(fs.readFileSync(reactPkgPath, 'utf8')).version;
+    if (!reactVersion.startsWith('19.')) {
+      console.warn(`[patch-expo-cli] ⚠️  react@${reactVersion} found in node_modules — expected 19.x`);
+    } else {
+      console.log(`[patch-expo-cli] ✅ react@${reactVersion} correctly installed.`);
+    }
   }
-} else {
-  console.warn('[patch-expo-cli] ⚠️  apps/mobile/node_modules/react not found — run npm install');
+} catch (_e) {
+  // Silent fallback for cloud EAS environment
 }
 
 if (patchedCount > 0) console.log(`[patch-expo-cli] ✅ ${patchedCount} Expo CLI file(s) patched.`);
