@@ -1,7 +1,7 @@
 /**
  * useAuth — primary authentication hook for MIZAN components.
  *
- * Wraps the auth store and auth service. Provides typed, loading-aware
+ * Wraps the auth store and Supabase auth service. Provides typed, loading-aware
  * actions for all auth flows.
  *
  * CRITICAL: This hook must NEVER call logout() or revokeSession() from
@@ -10,7 +10,8 @@
  */
 import { useState } from 'react';
 import { useAuthStore } from '../stores/auth.store';
-import { authService } from '../services/auth.service';
+import { authSupabaseService } from '../services/auth.supabase.service';
+import { profileService } from '../services/profile.service';
 
 export const useAuth = () => {
   const {
@@ -19,7 +20,8 @@ export const useAuth = () => {
     status,
     isHydrated,
     onboardingComplete,
-    setAuth,
+    setSession,
+    setProfile,
     setUser,
     setOnboardingComplete,
     logout:        storeLogout,
@@ -35,7 +37,10 @@ export const useAuth = () => {
     setIsLoading(true);
     setError(null);
     try {
-      await authService.requestEmailOtp({ email, name });
+      const parts     = (name ?? '').trim().split(' ');
+      const firstName = parts[0] ?? '';
+      const surname   = parts.slice(1).join(' ');
+      await authSupabaseService.requestEmailOtp({ email, firstName, surname });
       return true;
     } catch (err: any) {
       setError(err.message ?? 'Failed to send verification code.');
@@ -50,9 +55,8 @@ export const useAuth = () => {
     setIsLoading(true);
     setError(null);
     try {
-      const response = await authService.verifyEmailOtp({ email, otp });
-      // setAuth derives the correct status from user.onboardingComplete
-      setAuth(response.user as any, response.token);
+      const result = await authSupabaseService.verifyEmailOtp({ email, otp });
+      setSession(result.session, result.profile);
       return true;
     } catch (err: any) {
       setError(err.message ?? 'Verification failed. Please check the code.');
@@ -63,15 +67,16 @@ export const useAuth = () => {
   };
 
   // ── Google Sign-In ──────────────────────────────────────────────────────
-  const signInWithGoogle = async (data: {
-    googleId: string; email: string; name: string; profilePic?: string;
-  }): Promise<boolean> => {
+  const signInWithGoogle = async (): Promise<boolean> => {
     setIsLoading(true);
     setError(null);
     try {
-      const response = await authService.googleSignIn(data);
-      setAuth(response.user as any, response.token);
-      return true;
+      const result = await authSupabaseService.signInWithGoogle();
+      if (result?.session) {
+        setSession(result.session, result.profile);
+        return true;
+      }
+      return false;
     } catch (err: any) {
       setError(err.message ?? 'Google sign-in failed.');
       return false;
@@ -85,11 +90,11 @@ export const useAuth = () => {
     setIsLoading(true);
     setError(null);
     try {
-      await authService.confirmName(name);
-      if (user) setUser({ ...user, name } as any);
+      await authSupabaseService.confirmName(name);
+      const profile = await profileService.getCurrentProfile();
+      if (profile) setProfile(profile);
       return true;
     } catch (err: any) {
-      // Non-critical — name was saved locally in authService.confirmName
       setError(err.message ?? 'Failed to update name.');
       return false;
     } finally {
@@ -104,16 +109,17 @@ export const useAuth = () => {
     setIsLoading(true);
     setError(null);
     try {
-      await authService.completeOnboarding(prefs);
-      setOnboardingComplete(true);
-      if (user) setUser({ ...user, onboardingComplete: true, ...prefs } as any);
+      await authSupabaseService.completeOnboarding(prefs);
+      const profile = await profileService.getCurrentProfile();
+      if (profile) {
+        setProfile(profile);
+      } else {
+        setOnboardingComplete(true);
+      }
       return true;
     } catch (err: any) {
-      // authService.completeOnboarding saves locally on server failure
-      // so onboarding is still marked complete
       setOnboardingComplete(true);
-      if (user) setUser({ ...user, onboardingComplete: true, ...prefs } as any);
-      return true; // Always succeed — offline is supported
+      return true; // Always succeed locally
     } finally {
       setIsLoading(false);
     }
@@ -126,7 +132,7 @@ export const useAuth = () => {
    */
   const logout = async () => {
     try {
-      await authService.logout();
+      await authSupabaseService.logout();
     } catch {
       // Ignore errors — local state must still be cleared
     }
@@ -144,12 +150,12 @@ export const useAuth = () => {
     setIsLoading(true);
     setError(null);
     try {
-      const updated = await authService.updateProfile(data);
-      setUser({ ...user!, ...updated });
+      const updated = await authSupabaseService.updateProfile(data);
+      if (updated) setProfile(updated);
       return true;
     } catch (err: any) {
       // Keep session — this is a feature-level error
-      setError(err.response?.data?.message ?? err.message ?? 'Update failed');
+      setError(err.message ?? 'Update failed');
       return false;
     } finally {
       setIsLoading(false);
@@ -163,7 +169,7 @@ export const useAuth = () => {
   const forgotPassword = async (email: string): Promise<boolean> => {
     setIsLoading(true);
     try {
-      await authService.forgotPassword(email);
+      await authSupabaseService.forgotPassword(email);
       return true;
     } catch { return false; } finally { setIsLoading(false); }
   };
@@ -171,7 +177,7 @@ export const useAuth = () => {
   const resetPassword = async (email: string, otp: string, newPassword: string): Promise<boolean> => {
     setIsLoading(true);
     try {
-      await authService.resetPassword(email, otp, newPassword);
+      await authSupabaseService.resetPassword(email, otp, newPassword);
       return true;
     } catch { return false; } finally { setIsLoading(false); }
   };
@@ -205,3 +211,4 @@ export const useAuth = () => {
     resetPassword,
   };
 };
+

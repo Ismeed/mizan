@@ -114,10 +114,13 @@ export default function OTPScreen() {
       const ok = await verifyOtp(email, otpString);
       if (ok) {
         playSuccess();
-        // Navigate to splash which then transitions to Dashboard
-        // AuthGuard will route to onboarding if needed
         setTimeout(() => {
-          router.replace('/(auth)/splash');
+          const { onboardingComplete } = useAuthStore.getState();
+          if (onboardingComplete) {
+            router.replace('/(auth)/splash');
+          } else {
+            router.replace('/(auth)/onboarding');
+          }
         }, 1000);
       } else {
         shake();
@@ -134,11 +137,11 @@ export default function OTPScreen() {
     setOtp(Array(OTP_LENGTH).fill(''));
     inputRefs.current[0]?.focus();
 
-    const { authService } = await import('../../src/services/auth.service');
     if (isReset) {
       await forgotPassword(email);
     } else {
-      await authService.resendOtp(email, name);
+      const { requestOtp } = useAuth();
+      await requestOtp(email, name);
     }
   };
 
